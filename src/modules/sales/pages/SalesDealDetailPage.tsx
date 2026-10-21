@@ -4,9 +4,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { checksDone, checksSection } from '../../../components/detail/checks';
 import { detailStateOf } from '../../../components/detail/detailState';
 import { BUYER_LEGAL, legalSection, type LegalState } from '../../../components/detail/legalChecklist';
-import { methodLabel, payForm, payValid, printReceipt } from '../../../components/detail/payment';
+import { methodLabel, PAY_METHODS, payForm, payValid, printReceipt } from '../../../components/detail/payment';
 import { btn, personSection, propertySection } from '../../../components/detail/sections';
-import { useFormModal } from '../../../components/ui/FormModal';
+import { useFormModal, type FormValues } from '../../../components/ui/FormModal';
 import { RecordDetailView } from '../../../components/ui/RecordDetailView';
 import { SLOTS } from '../../../constants/enquiries';
 import { SALES_STAGES } from '../../../constants/labels';
@@ -95,6 +95,46 @@ export function SalesDealDetailPage() {
     exec(() => updateDealStage(d.id, to, extra)).then(() => {
       setStageBanner(salesStage(to));
       toast(msg || 'Stage updated to ' + salesStage(to));
+    });
+  const suggestedToken = agreed ? Math.round((agreed * 0.05) / 1e4) * 1e4 : 0;
+  const tokenFields = () => [
+    { key: 'amount', label: 'Token amount (₹)', type: 'number' as const, default: suggestedToken ? String(suggestedToken) : '' },
+    { key: 'method', label: 'Payment method', type: 'select' as const, options: PAY_METHODS },
+    { key: 'reference', label: 'UTR / Reference number' },
+    { key: 'date', label: 'Payment date', type: 'date' as const, max: today, default: today },
+  ];
+  const tokenErrors = (v: FormValues) => {
+    const err: Record<string, string> = {};
+    if (!(Number(v.amount) > 0)) err.amount = 'Token cannot be 0';
+    if (!v.method) err.method = 'Payment method is required';
+    if (v.method && v.method !== 'cash' && !String(v.reference || '').trim()) err.reference = 'UTR / Reference number is required';
+    if (!v.date) err.date = 'Payment date is required';
+    else if (String(v.date) > today) err.date = 'Payment date is in the future';
+    return err;
+  };
+  const tokenBody = (v: FormValues) => {
+    const method = String(v.method) as 'neft' | 'upi' | 'cheque' | 'cash';
+    const amount = Number(v.amount);
+    return { tokenAmount: amount, tokenPaid: true, tokenPayment: { amount, method, paymentDate: String(v.date), reference: String(v.reference || (method === 'cash' ? 'Cash' : '')) } };
+  };
+  const finishMove = async (to: string) => {
+    await updateDealStage(d.id, to);
+    setStageBanner(salesStage(to));
+    toast('Stage updated to ' + salesStage(to));
+    void q.refetch();
+  };
+  const recordTokenAndMove = (to: string) =>
+    modal.open({
+      title: 'Record token payment',
+      subtitle: d.buyerName + ' · ' + d.propertyTitle,
+      banners: [{ text: 'The token is saved on this deal, then the stage moves to ' + salesStage(to) + '.', tone: 'info' }],
+      fields: tokenFields(),
+      validate: tokenErrors,
+      submit: 'Record & move',
+      onSubmit: async (v) => {
+        await updateDealTokenPayment(d.id, tokenBody(v));
+        await finishMove(to);
+      },
     });
   const saveWf = (patch: Raw, msg?: string) => exec(() => updateSalesDeal(d.id, { documentation: { ...doc, workflow: { ...wfd, ...patch } } }), msg);
   const plan = (body: Raw, msg?: string) => exec(() => updateDealPaymentPlan(d.id, body), msg);
@@ -433,11 +473,12 @@ export function SalesDealDetailPage() {
           [
             btn(d.paymentType === 'stage' ? '📊 Move to Stage Payment' : '💳 Move to Full Payment', () => {
               if (!d.paymentType) return toast('Select payment method first');
-              if (!d.tokenPaid) return toast('Full token required before proceeding to next stage');
-              void move(d.paymentType === 'stage' ? 'stage_payment' : 'full_payment');
-            }, 'green', { disabled: !d.paymentType || !d.tokenPaid }),
+              const to = d.paymentType === 'stage' ? 'stage_payment' : 'full_payment';
+              if (!d.tokenPaid) return recordTokenAndMove(to);
+              void move(to);
+            }, 'green', { disabled: !d.paymentType }),
           ],
-          !d.paymentType ? [{ text: 'Select payment method first', tone: 'muted' }] : [],
+          !d.paymentType ? [{ text: 'Select payment method first', tone: 'muted' }] : !d.tokenPaid ? [{ text: 'Record the token payment to continue. Moving will save it on this deal.', tone: 'muted' }] : [],
         ),
       );
     }
@@ -973,8 +1014,21 @@ export function SalesDealDetailPage() {
               title: 'Quick Actions',
               stack: true,
               actions: [
-                btn('📋 Move Stage…', () =>
-                  modal.open({ title: 'Move Stage', fields: [{ key: 's', label: 'Stage', type: 'select', options: MOVE_TO.map(([value, l]) => ({ value, label: l })), required: true }], submit: 'Move', onSubmit: (v) => move(String(v.s)) })),
+                btn('📋 Move Stage…', () => {
+                  const askToken = stage === 'token_payment' && !d.tokenPaid;
+                  modal.open({
+                    title: 'Move Stage',
+                    banners: askToken ? [{ text: 'Full Payment and Stage Payment need a token payment recorded on this deal.', tone: 'info' }] : [],
+                    fields: [{ key: 's', label: 'Stage', type: 'select', options: MOVE_TO.map(([value, l]) => ({ value, label: l })), required: true }, ...(askToken ? tokenFields() : [])],
+                    validate: (v) => (askToken && ['full_payment', 'stage_payment'].includes(String(v.s)) ? tokenErrors(v) : {}),
+                    submit: 'Move',
+                    onSubmit: async (v) => {
+                      const to = String(v.s);
+                      if (askToken && ['full_payment', 'stage_payment'].includes(to)) await updateDealTokenPayment(d.id, tokenBody(v));
+                      await finishMove(to);
+                    },
+                  });
+                }),
                 btn('❌ Mark as Lost', () => lose(), 'red'),
               ],
             },
