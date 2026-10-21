@@ -1,0 +1,1 @@
+export { searchDashboard } from './searchService';

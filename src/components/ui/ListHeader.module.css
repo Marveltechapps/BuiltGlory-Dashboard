@@ -1,0 +1,16 @@
+.page { margin: 0 auto; display: flex; max-width: 1600px; flex-direction: column; gap: 16px; }
+.head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.titleWrap { display: flex; align-items: center; gap: 10px; }
+.title { font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -0.025em; }
+.count { display: inline-flex; align-items: center; border-radius: 9999px; background: #f1f5f9; padding: 2px 8px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--color-muted); }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.search { position: relative; width: 256px; max-width: 100%; }
+.searchIcon { position: absolute; left: 10px; top: 50%; display: inline-flex; transform: translateY(-50%); color: var(--color-muted); }
+.searchInput { height: 36px; width: 100%; border-radius: 8px; border: 1px solid var(--color-border); background: #ffffff; padding: 0 12px 0 34px; font-size: 14px; line-height: 20px; outline: none; }
+.searchInput:focus { border-color: #2563eb; box-shadow: var(--focus-ring); }
+.select { height: 36px; border-radius: 8px; border: 1px solid var(--color-border); background: #ffffff; padding: 0 8px; font-size: 14px; line-height: 20px; }
+.toggle { display: flex; overflow: hidden; border-radius: 8px; border: 1px solid var(--color-border); background: #ffffff; }
+.toggleBtn { display: inline-flex; width: 36px; height: 34px; align-items: center; justify-content: center; }
+.tabs { display: flex; overflow-x: auto; border-bottom: 1px solid var(--color-border); scrollbar-width: thin; }
+.tab { margin-bottom: -1px; height: 40px; flex-shrink: 0; padding: 0 14px; font-size: 14px; line-height: 20px; font-weight: 500; white-space: nowrap; border-bottom: 2px solid transparent; }
+.tab:hover { color: #2563eb; }
