@@ -209,7 +209,7 @@ export function DataTable(p: DataTableProps) {
       {state === 'normal' && (
         <>
           <div className={styles.scroll}>
-            <table className={styles.table} style={{ minWidth: p.minWidth || '720px' }}>
+            <table className={styles.table}>
               <thead>
                 <tr className={styles.headRow}>
                   {p.selectable && (
@@ -233,7 +233,7 @@ export function DataTable(p: DataTableProps) {
                       const cell = c || {};
                       const hasActions = compact(cell.actions).length > 0;
                       return (
-                        <td key={i} className={styles.td} onClick={hasActions || cell.stop ? stop : undefined} style={{ whiteSpace: cell.wrap ? 'normal' : 'nowrap' }}>
+                      <td key={i} className={styles.td} data-label={typeof p.columns[i] === 'string' ? p.columns[i] : p.columns[i]?.label || ''} onClick={hasActions || cell.stop ? stop : undefined}>
                           <CellView c={cell} />
                         </td>
                       );

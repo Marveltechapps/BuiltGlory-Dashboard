@@ -1,4 +1,5 @@
-import { toast } from '../store/uiStore';
+import { openCompose, toast } from '../store/uiStore';
+import type { EntityType } from '../types/workflow';
 
 export const phoneDigits = (phone: string) => phone.replace(/\D/g, '');
 export const isValidPhone = (phone: string | null | undefined) => !!phone && phoneDigits(phone).length >= 10;
@@ -21,4 +22,13 @@ export async function copyText(value: string) {
   } catch {
     toast('Copy failed');
   }
+}
+
+/** Opens the compose dialog for WhatsApp or email. Email needs an address on the record. */
+export function reachOut(channel: 'whatsapp' | 'email', o: { name: string; to?: string | null; property?: string; entity?: { type: EntityType; id: string } }) {
+  if (channel === 'email' && !o.to) {
+    toast('No email on file for ' + o.name);
+    return;
+  }
+  openCompose({ channel, name: o.name, to: o.to, property: o.property, entity: o.entity });
 }

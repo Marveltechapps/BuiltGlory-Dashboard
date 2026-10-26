@@ -196,6 +196,7 @@ export interface ChatThread {
   buyerId: string;
   buyerName: string;
   phone: string;
+  email: string | null;
   propertyId: string;
   propertyTitle: string;
   listedPrice: number;

@@ -2,9 +2,8 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon } from '../../../components/ui/Icon';
 import { useViewport } from '../../../hooks/useViewport';
-import { num } from '../../../lib/format';
 import { toast } from '../../../store/uiStore';
-import { useLogin, useLoginStats } from '../hooks/useAuth';
+import { useLogin } from '../hooks/useAuth';
 import styles from './LoginPage.module.css';
 
 const SAFE_REDIRECT = /^\/admin(?:\/|$|\?)/;
@@ -14,7 +13,6 @@ export function LoginPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const { isMd, isLg } = useViewport();
-  const stats = useLoginStats();
   const login = useLogin();
   const [view, setView] = useState<View>('login');
   const [email, setEmail] = useState('');
@@ -52,8 +50,6 @@ export function LoginPage() {
     );
   };
 
-  const statVal = (n?: number) => (stats.data ? num(n ?? 0) : stats.isError ? '—' : '…');
-
   return (
     <div className={styles.page}>
       {isLg && (
@@ -68,11 +64,6 @@ export function LoginPage() {
             </div>
             <h2 className={styles.headline}>Manage your real estate operations</h2>
             <p className={styles.tagline}>Properties, Pipelines, Users and more — all in one place.</p>
-            <div className={styles.stats}>
-              <div className={styles.stat}><p className={styles.statValue}>{statVal(stats.data?.properties)}</p><p className={styles.statLabel}>Properties</p></div>
-              <div className={styles.stat}><p className={styles.statValue}>{statVal(stats.data?.users)}</p><p className={styles.statLabel}>Users</p></div>
-              <div className={styles.stat}><p className={styles.statValue}>{statVal(stats.data?.deals)}</p><p className={styles.statLabel}>Deals</p></div>
-            </div>
           </div>
           <p className={styles.copy}>© 2026 Builtglory. All rights reserved.</p>
         </aside>

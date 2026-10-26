@@ -234,7 +234,7 @@ export function VisitDetailPage() {
         },
       ]}
       side={[
-        personSection('Buyer Info', { name: v.buyerName, phone: v.phone, email: v.email }, [{ label: 'User type', value: v.userType.toUpperCase() }], v.buyerId ? '/admin/users/' + v.buyerId : null, 'View Buyer Profile →', navigate),
+        personSection('Buyer Info', { name: v.buyerName, phone: v.phone, email: v.email }, [{ label: 'User type', value: v.userType.toUpperCase() }], v.buyerId ? '/admin/users/' + v.buyerId : null, 'View Buyer Profile', navigate),
         propertySection('Property Info', prop.data, { id: v.propertyId, title: v.propertyTitle, price: v.propertyPrice, type: v.propertyType, location: v.propertyAddress, image: v.propertyImage }, navigate),
         {
           title: 'Visit Actions',

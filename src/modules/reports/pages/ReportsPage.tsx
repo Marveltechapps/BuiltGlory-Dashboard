@@ -111,7 +111,7 @@ function Header({ title, subtitle, children }: { title: string; subtitle: string
   return (
     <div className={styles.head}>
       <div>
-        <h2 className={styles.title}>{title}</h2>
+        <h2 className="bg-sr-only">{title}</h2>
         <p className={styles.muted}>{subtitle}</p>
       </div>
       {children}
@@ -196,7 +196,7 @@ function AnalyticsView({ tab }: { tab: Exclude<Tab, 'export'> }) {
             { title: String(p.compareCount), strong: true },
             { title: (p.views ? ((p.enquiries / p.views) * 100).toFixed(1) : '0.0') + '%' },
             { title: (p.enquiries ? ((p.visits / p.enquiries) * 100).toFixed(0) : '0') + '%' },
-            { actions: [{ label: 'View →', onClick: () => navigate('/admin/properties/' + p.id) }] },
+            { actions: [{ label: 'View', onClick: () => navigate('/admin/properties/' + p.id) }] },
           ],
         })),
       },
@@ -215,7 +215,7 @@ function AnalyticsView({ tab }: { tab: Exclude<Tab, 'export'> }) {
             { badges: [badge(salesStage(d.stage), 'blue')] },
             { title: d.agreedPrice ? price(d.agreedPrice) : '—' },
             { title: relativeLong(d.lastActivityAt), muted: true },
-            { actions: [{ label: 'View Deal →', onClick: () => navigate('/admin/sales/' + d.id) }] },
+            { actions: [{ label: 'View Deal', onClick: () => navigate('/admin/sales/' + d.id) }] },
           ],
         })),
       },

@@ -59,7 +59,7 @@ export function SupportTicketsTab() {
                 isOpen && t.priority === 'urgent' && age > 24 ? badge('Overdue', 'red') : null,
                 isOpen && !hasAdminReply(t) && age > 48 ? badge('No response 48h+', 'orange') : null,
               ],
-              actions: [btn('View →', open(t))],
+              actions: [btn('View', open(t))],
             };
           }),
           empty: list.length ? '' : all.length ? 'No tickets match filters' : 'No support tickets yet',

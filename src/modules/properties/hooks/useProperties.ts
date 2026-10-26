@@ -5,6 +5,7 @@ import {
   deleteProperty, deletePropertyPermanently, listProperties, restoreProperty, updateProperty, updatePropertyStatus,
 } from '../../../services/properties';
 import { toast } from '../../../store/uiStore';
+import { useSession } from '../../../hooks/useSession';
 import type { Property, PropertyPayload } from '../../../types/properties';
 
 /** GET /admin/properties (all pages, including soft-deleted for the Deleted Properties panel). */
@@ -20,7 +21,13 @@ type Status = Parameters<typeof updatePropertyStatus>[1]['status'];
  */
 export function usePropertyActions() {
   const qc = useQueryClient();
+  const { can } = useSession();
   const [busy, setBusy] = useState(false);
+  const allow = (permission: 'properties.write' | 'properties.publish') => {
+    if (can(permission)) return true;
+    toast('You do not have permission for this action.');
+    return false;
+  };
 
   const refresh = (ids: string[] = []) => {
     void qc.invalidateQueries({ queryKey: ['properties'] });
@@ -43,8 +50,9 @@ export function usePropertyActions() {
     }
   }
 
-  const patch = (p: Property, body: PropertyPayload, msg?: string) => run([p.id], () => updateProperty(p.id, body), msg);
-  const status = (p: Property, s: Status, msg?: string, extra: { reason?: string; notes?: string } = {}) => run([p.id], () => updatePropertyStatus(p.id, { status: s, ...extra }), msg);
+  const skip = () => Promise.resolve(undefined);
+  const patch = (p: Property, body: PropertyPayload, msg?: string) => allow('properties.write') ? run([p.id], () => updateProperty(p.id, body), msg) : skip();
+  const status = (p: Property, s: Status, msg?: string, extra: { reason?: string; notes?: string } = {}) => allow('properties.publish') ? run([p.id], () => updatePropertyStatus(p.id, { status: s, ...extra }), msg) : skip();
 
   return {
     busy,
@@ -55,24 +63,24 @@ export function usePropertyActions() {
     pause: (p: Property, msg = '⏸ Listing paused') => patch(p, { isVisibleOnApp: false }, msg),
     /** Draft / paused / sold → available and visible on the app. */
     publish: (p: Property, msg = '▶️ Listing published') =>
-      run([p.id], async () => {
+      allow('properties.publish') ? run([p.id], async () => {
         if (p.status !== 'available') await updatePropertyStatus(p.id, { status: 'available' });
         if (!p.isVisibleOnApp || p.status !== 'available') await updateProperty(p.id, { isVisibleOnApp: true });
-      }, msg),
+      }, msg) : skip(),
     markSold: (p: Property, msg = '✅ Marked as sold') =>
-      run([p.id], async () => {
+      allow('properties.publish') ? run([p.id], async () => {
         await updatePropertyStatus(p.id, { status: 'sold' });
         if (p.isFeatured) await updateProperty(p.id, { isFeatured: false });
-      }, msg),
+      }, msg) : skip(),
     moveToAvailable: (p: Property) =>
-      run([p.id], async () => {
+      allow('properties.publish') && allow('properties.write') ? run([p.id], async () => {
         await updateProperty(p.id, { isUpcoming: false, isVisibleOnApp: true });
         if (p.status !== 'available') await updatePropertyStatus(p.id, { status: 'available' });
-      }, '✅ Moved to Available'),
-    remove: (ids: string[], msg = '🗑 Moved to Deleted Properties') => run(ids, () => Promise.all(ids.map((id) => deleteProperty(id))), msg),
-    restore: (p: Property) => run([p.id], () => restoreProperty(p.id), '♻️ Property restored'),
-    purge: (p: Property) => run([p.id], () => deletePropertyPermanently(p.id), 'Property permanently deleted'),
-    bulk: (list: Property[], body: PropertyPayload, msg: string) => run(list.map((p) => p.id), () => Promise.all(list.map((p) => updateProperty(p.id, body))), msg),
+      }, '✅ Moved to Available') : skip(),
+    remove: (ids: string[], msg = '🗑 Moved to Deleted Properties') => allow('properties.write') ? run(ids, () => Promise.all(ids.map((id) => deleteProperty(id))), msg) : skip(),
+    restore: (p: Property) => allow('properties.write') ? run([p.id], () => restoreProperty(p.id), '♻️ Property restored') : skip(),
+    purge: (p: Property) => allow('properties.write') ? run([p.id], () => deletePropertyPermanently(p.id), 'Property permanently deleted') : skip(),
+    bulk: (list: Property[], body: PropertyPayload, msg: string) => allow('properties.write') ? run(list.map((p) => p.id), () => Promise.all(list.map((p) => updateProperty(p.id, body))), msg) : skip(),
   };
 }
 

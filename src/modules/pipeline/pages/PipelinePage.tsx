@@ -131,7 +131,7 @@ export function PipelinePage({ kind }: { kind: 'acquisition' | 'sales' }) {
   const stageCell = (r: PipeItem): Cell => ({ dot: dot(r.stage), title: label(r.stage), sub: r.days + 'd in stage', flags: [r.days > 14 && !terminal.includes(r.stage) ? { text: '⚠️ Stalled' } : null] });
   const assignCell = (r: PipeItem): Cell => (assignee(r) ? { title: assignee(r) } : { title: '⚠️ Unassigned', color: '#c2410c' });
   const rows: Row[] = list.map((r) => {
-    const act: Cell = { actions: [{ label: r.stage === 'on_hold' ? 'Resume →' : 'View →', onClick: open(r) }] };
+    const act: Cell = { actions: [{ label: r.stage === 'on_hold' ? 'Resume' : 'View', onClick: open(r) }] };
     return {
       key: r.id,
       onClick: open(r),
@@ -228,7 +228,7 @@ export function PipelinePage({ kind }: { kind: 'acquisition' | 'sales' }) {
                       <span style={{ display: 'flex', width: 24, height: 24, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderRadius: 9999, background: '#f1f5f9', fontSize: 10, fontWeight: 600, color: '#475569' }}>{a ? initials(a) : '?'}</span>
                       <span className={styles.ellipsis} style={{ fontSize: 12, lineHeight: '16px', color: a ? '#334155' : '#c2410c' }}>{a || '⚠️ Unassigned'}</span>
                     </div>
-                    <span className={styles.cta}>{r.stage === 'on_hold' ? 'Resume →' : 'View Details →'}</span>
+                    <span className={styles.cta}>{r.stage === 'on_hold' ? 'Resume' : 'View Details'}</span>
                   </div>
                 </div>
               </div>

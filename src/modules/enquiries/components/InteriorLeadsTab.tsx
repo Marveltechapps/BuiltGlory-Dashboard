@@ -5,7 +5,7 @@ import { emptyFor, matches, tableStateOf } from '../../../components/tables/list
 import { InnerTabs, ListHeader, PageStack } from '../../../components/ui/ListHeader';
 import { BUDGET_LABEL, STYLE_LABEL } from '../../../constants/enquiries';
 import { useDesigners } from '../../../hooks/useTeam';
-import { callPhone } from '../../../lib/contact';
+import { reachOut } from '../../../lib/contact';
 import { initials, statusLabel } from '../../../lib/format';
 import type { InteriorLead } from '../../../types/enquiries';
 import { useInteriorLeads } from '../hooks/useEnquiries';
@@ -42,7 +42,11 @@ export function InteriorLeadsTab() {
       slaOf(l),
       { badges: [enqBadge('interior', l.status)] },
       { title: designer(l) || '⚠️ No designer', color: designer(l) ? undefined : '#c2410c' },
-      { actions: [{ label: '📞 Call', onClick: () => callPhone(l.buyerName, l.phone) }, { label: 'View →', onClick: open(l) }] },
+      { actions: [
+        { icon: 'message-circle', title: 'WhatsApp', variant: 'green', onClick: () => reachOut('whatsapp', { name: l.buyerName, to: l.phone, property: l.propertyTitle, entity: { type: 'interior_lead', id: l.id } }) },
+        { icon: 'mail', title: 'Email', onClick: () => reachOut('email', { name: l.buyerName, to: l.email, property: l.propertyTitle, entity: { type: 'interior_lead', id: l.id } }) },
+        { label: 'View', onClick: open(l) },
+      ] },
     ],
   }));
 

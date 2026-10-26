@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { DataTable, type Row } from '../../../components/tables/DataTable';
 import { emptyFor, matches, readView, tableStateOf, writeView } from '../../../components/tables/listState';
 import { InnerTabs, ListHeader, PageStack } from '../../../components/ui/ListHeader';
-import { callPhone } from '../../../lib/contact';
+import { reachOut } from '../../../lib/contact';
 import { initials, price, relativeLong, typeLabel } from '../../../lib/format';
 import type { SellRequest } from '../../../types/enquiries';
 import { useSellRequests } from '../hooks/useEnquiries';
@@ -40,7 +40,7 @@ export function SellRequestsTab() {
         strong: true,
         sub: r.phone,
         flags: [
-          r.duplicateOf ? { text: 'Duplicate · View original →', bg: '#fef3c7', fg: '#92400e', onClick: () => navigate('/admin/enquiries/sell/' + r.duplicateOf) } : null,
+          r.duplicateOf ? { text: 'Duplicate · View original', bg: '#fef3c7', fg: '#92400e', onClick: () => navigate('/admin/enquiries/sell/' + r.duplicateOf) } : null,
           r.photos.length === 0 ? { text: 'No photos', bg: '#f1f5f9', fg: '#64748b' } : null,
         ],
       },
@@ -50,9 +50,10 @@ export function SellRequestsTab() {
       { title: relativeLong(r.createdAt), muted: true },
       {
         actions: [
-          { label: '📞 Follow Up', onClick: () => callPhone(r.sellerName, r.phone) },
+          { icon: 'message-circle', title: 'WhatsApp', variant: 'green', onClick: () => reachOut('whatsapp', { name: r.sellerName, to: r.phone, property: r.title, entity: { type: 'sell_request', id: r.id } }) },
+          { icon: 'mail', title: 'Email', onClick: () => reachOut('email', { name: r.sellerName, to: r.email, property: r.title, entity: { type: 'sell_request', id: r.id } }) },
           { label: 'Preview', onClick: () => setPreviewId(r.id) },
-          { label: 'View →', onClick: open(r) },
+          { label: 'View', onClick: open(r) },
         ],
       },
     ],
@@ -67,7 +68,7 @@ export function SellRequestsTab() {
     prop: r.title,
     propSub: price(r.askingPrice) + ' · ' + r.locality,
     open: open(r),
-    cta: 'View Details →',
+    cta: 'View Details',
     lines: [
       { label: 'Completeness', value: r.completeness + '%', color: r.completeness >= 80 ? '#15803d' : r.completeness >= 50 ? '#b45309' : '#b91c1c' },
       { label: 'Type', value: typeLabel(r.type) },
@@ -76,7 +77,8 @@ export function SellRequestsTab() {
     ],
     flags: r.duplicateOf ? [{ text: 'Duplicate', bg: '#fef3c7', fg: '#92400e' }] : [],
     actions: [
-      { icon: 'phone', label: 'Follow Up', color: '#0f172a', onClick: () => callPhone(r.sellerName, r.phone) },
+      { icon: 'message-circle', label: 'WhatsApp', color: '#15803d', onClick: () => reachOut('whatsapp', { name: r.sellerName, to: r.phone, property: r.title, entity: { type: 'sell_request', id: r.id } }) },
+      { icon: 'mail', label: 'Email', color: '#0f172a', onClick: () => reachOut('email', { name: r.sellerName, to: r.email, property: r.title, entity: { type: 'sell_request', id: r.id } }) },
       { icon: 'eye', label: 'Preview', color: '#0f172a', onClick: () => setPreviewId(r.id) },
     ],
   }));

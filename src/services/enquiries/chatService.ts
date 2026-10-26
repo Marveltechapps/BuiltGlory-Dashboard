@@ -27,6 +27,7 @@ export function mapChatThread(raw: Raw): ChatThread {
     buyerId: idOf(raw.buyerId),
     buyerName: str(buyer.name, 'Buyer'),
     phone: str(buyer.phone),
+    email: strOrNull(buyer.email),
     propertyId: idOf(raw.propertyId),
     propertyTitle: str(property.title, 'Property'),
     listedPrice: num(neg.listedPrice ?? property.price) ?? 0,

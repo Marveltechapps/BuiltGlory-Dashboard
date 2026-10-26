@@ -11,7 +11,6 @@ import { useProperty } from '../../../hooks/useProperty';
 import { useRefreshingMutation } from '../../../hooks/useRefreshingMutation';
 import { useSalesTeam } from '../../../hooks/useTeam';
 import { useWorkflowSections } from '../../../hooks/useWorkflowSections';
-import { callPhone } from '../../../lib/contact';
 import { date, isHttpsUrl, price, relativeLong, shortId, statusLabel, todayIso } from '../../../lib/format';
 import { convertEnquiryToDeal, getBuyEnquiry, updateBuyEnquiry } from '../../../services/enquiries';
 import { createLog } from '../../../services/workflow';
@@ -105,7 +104,6 @@ export function BuyEnquiryDetailPage() {
       badges={[statusBadge(e.status), e.userType !== 'resident' ? { text: e.userType.toUpperCase(), tone: 'indigo' } : null]}
       meta={shortId(e.id, e.referenceId) + ' • Submitted ' + relativeLong(e.createdAt) + ' • Source: ' + statusLabel(e.source || 'app')}
       hActions={[
-        btn('📞 Call Now', () => callPhone(e.buyerName, e.phone)),
         btn('💬 Contact via WhatsApp', () => openCompose({ channel: 'whatsapp', name: e.buyerName, to: e.phone, property: e.propertyTitle, entity }), 'green'),
         btn('📧 Send Email', () => openCompose({ channel: 'email', name: e.buyerName, to: e.email, property: e.propertyTitle, entity }), 'outline', { disabled: !e.email }),
       ]}
@@ -115,14 +113,14 @@ export function BuyEnquiryDetailPage() {
           ? { text: '⚠️ This property has been sold', tone: 'error', actions: [{ label: 'Notify Buyer', onClick: () => openCompose({ channel: 'whatsapp', name: e.buyerName, to: e.phone, entity, body: 'Hi ' + first + ', ' + e.propertyTitle + ' has been sold. Can we share similar options?' }) }] }
           : null,
         p && (p.isDeleted || !p.isVisibleOnApp) && p.status !== 'sold' ? { text: '⚠️ Property no longer available', tone: 'warn', actions: [{ label: 'Show similar properties', onClick: () => navigate('/admin/properties/all') }] } : null,
-        e.duplicateOf ? { text: 'Duplicate enquiry', tone: 'warn', actions: [{ label: 'View original →', onClick: () => navigate('/admin/enquiries/buy/' + e.duplicateOf) }] } : null,
+        e.duplicateOf ? { text: 'Duplicate enquiry', tone: 'warn', actions: [{ label: 'View original', onClick: () => navigate('/admin/enquiries/buy/' + e.duplicateOf) }] } : null,
         oldNew ? { text: 'Preferred time has passed — ask buyer for new availability.', tone: 'warn' } : null,
-        e.dealId ? { text: '➡️ This enquiry is in the Sales Pipeline', tone: 'info', actions: [{ label: 'View deal →', onClick: () => navigate('/admin/sales/' + e.dealId) }] } : null,
+        e.dealId ? { text: '➡️ This enquiry is in the Sales Pipeline', tone: 'info', actions: [{ label: 'View deal', onClick: () => navigate('/admin/sales/' + e.dealId) }] } : null,
       ]}
       main={[
         {
           ...propertySection('Property Interested In', p, { id: e.propertyId, title: e.propertyTitle, price: e.propertyPrice, type: e.propertyType, location: e.propertyLocation }, navigate),
-          actions: e.propertyId ? [btn('View Property Page →', () => navigate('/admin/properties/' + e.propertyId), 'link')] : [],
+          actions: e.propertyId ? [btn('View Property Page', () => navigate('/admin/properties/' + e.propertyId), 'link')] : [],
         },
         {
           title: 'Enquiry Details',
@@ -163,7 +161,7 @@ export function BuyEnquiryDetailPage() {
             }, 'primary'),
           ],
         },
-        personSection('Buyer Info', { name: e.buyerName, phone: e.phone, email: e.email }, [{ label: 'User type', value: e.userType ? e.userType.toUpperCase() : '' }], e.buyerId ? '/admin/users/' + e.buyerId : null, 'View Buyer Profile →', navigate),
+        personSection('Buyer Info', { name: e.buyerName, phone: e.phone, email: e.email }, [{ label: 'User type', value: e.userType ? e.userType.toUpperCase() : '' }], e.buyerId ? '/admin/users/' + e.buyerId : null, 'View Buyer Profile', navigate),
         {
           title: 'Quick Actions',
           stack: true,
@@ -171,7 +169,7 @@ export function BuyEnquiryDetailPage() {
             btn('📅 Schedule Visit', schedule),
             btn('💬 WhatsApp', () => openCompose({ channel: 'whatsapp', name: e.buyerName, to: e.phone, property: e.propertyTitle, entity })),
             btn('💬 Start Negotiation', negotiate),
-            btn('📞 Call', () => callPhone(e.buyerName, e.phone)),
+            btn('📧 Email', () => openCompose({ channel: 'email', name: e.buyerName, to: e.email, property: e.propertyTitle, entity }), 'outline', { disabled: !e.email }),
             btn('📧 Send Property Details', sendDetails),
             btn('➡️ Move to Sales Pipeline', toSales, 'primary', { loading: convert.isPending }),
             e.status === 'new' ? btn('✅ Mark as Responded', () => setStatus('responded', '✅ Marked as responded'), 'green') : null,

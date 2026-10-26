@@ -1,1 +1,1 @@
-export { mapUser, listUsers, getUser, exportUser, updateUser, setUserBlocked, assignUser, updateUserFema } from './usersService';
+export { mapUser, listUsers, getUser, exportUser, updateUser, setUserBlocked, assignUser, updateUserFema, updateUserKyc } from './usersService';

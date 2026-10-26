@@ -9,11 +9,11 @@ import ms from '../../../components/ui/Modal.module.css';
 import { useRefreshingMutation } from '../../../hooks/useRefreshingMutation';
 import { useViewport } from '../../../hooks/useViewport';
 import { formatApiError } from '../../../lib/apiClient';
-import { callPhone } from '../../../lib/contact';
+import { reachOut } from '../../../lib/contact';
 import { badge, initials, price, relative } from '../../../lib/format';
 import { sendChatMessage } from '../../../services/enquiries';
 import { createSalesDeal } from '../../../services/sales';
-import { askConfirm, openCompose, toast } from '../../../store/uiStore';
+import { askConfirm, toast } from '../../../store/uiStore';
 import type { ChatThread } from '../../../types/enquiries';
 import { useChatThreads } from '../hooks/useEnquiries';
 import { enqBadge } from './enquiryHelpers';
@@ -167,10 +167,10 @@ export function ChatTab() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    <button type="button" className={styles.convBtn} onClick={() => callPhone(cur.buyerName, cur.phone)}><Icon name="phone" size={14} />Call</button>
+                    <button type="button" className={styles.convBtn} onClick={() => reachOut('email', { name: cur.buyerName, to: cur.email, property: cur.propertyTitle, entity: cur.buyerId ? { type: 'user', id: cur.buyerId } : undefined })}><Icon name="mail" size={14} />Email</button>
                     <button type="button" className={styles.convBtn} onClick={() => navigate('/admin/users/' + cur.buyerId)} disabled={!cur.buyerId}><Icon name="user" size={14} />View Profile</button>
                     <button type="button" className={styles.convBtn} onClick={() => navigate('/admin/properties/' + cur.propertyId)} disabled={!cur.propertyId}><Icon name="building-2" size={14} />View Property</button>
-                    <button type="button" className={styles.convBtn} onClick={() => openCompose({ channel: 'whatsapp', name: cur.buyerName, to: cur.phone, property: cur.propertyTitle, entity: cur.buyerId ? { type: 'user', id: cur.buyerId } : undefined })}><Icon name="send" size={14} />Send Follow-up</button>
+                    <button type="button" className={styles.convBtn} onClick={() => reachOut('whatsapp', { name: cur.buyerName, to: cur.phone, property: cur.propertyTitle, entity: cur.buyerId ? { type: 'user', id: cur.buyerId } : undefined })}><Icon name="message-circle" size={14} />WhatsApp</button>
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', borderBottom: '1px solid #e2e8f0', background: 'rgba(241,245,249,0.5)' }}>
@@ -206,7 +206,7 @@ export function ChatTab() {
                 {cur.status === 'deal_agreed' && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: '#f0fdf4', padding: '10px 16px', fontSize: 14, color: '#15803d' }}>
                     <span style={{ fontWeight: 500 }}>✅ Deal closed — moved to Sales Pipeline</span>
-                    {cur.dealId && <button type="button" onClick={() => navigate('/admin/sales/' + cur.dealId)} style={{ fontSize: 13, fontWeight: 500, color: '#15803d', textDecoration: 'underline' }}>View deal →</button>}
+                    {cur.dealId && <button type="button" onClick={() => navigate('/admin/sales/' + cur.dealId)} style={{ fontSize: 13, fontWeight: 500, color: '#15803d', textDecoration: 'underline' }}>View deal</button>}
                   </div>
                 )}
                 <div style={{ display: 'flex', flex: 1, flexDirection: 'column', gap: 12, overflowY: 'auto', maxHeight: 420, padding: 16 }}>

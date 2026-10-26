@@ -16,6 +16,7 @@ export interface OverviewSlaItem {
   name: string;
   property: string;
   phone?: string;
+  email?: string;
   viewPath: string;
   sourceTime: string;
   limitHours: number;

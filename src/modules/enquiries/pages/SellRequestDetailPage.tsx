@@ -10,7 +10,7 @@ import { useRefreshingMutation } from '../../../hooks/useRefreshingMutation';
 import { useSalesTeam } from '../../../hooks/useTeam';
 import { useWorkflowSections } from '../../../hooks/useWorkflowSections';
 import { badge, price, relativeLong, shortId, statusLabel, todayIso, typeLabel } from '../../../lib/format';
-import { callPhone } from '../../../lib/contact';
+import { reachOut } from '../../../lib/contact';
 import { updateAcquisitionStage } from '../../../services/acquisitions';
 import { assignSellRequest, createAcquisitionFromSell, getSellRequest, reviewSellRequest, type SellReviewBody } from '../../../services/enquiries';
 import { findProperties } from '../../../services/properties';
@@ -153,7 +153,8 @@ export function SellRequestDetailPage() {
       badges={[statusBadge(r.status), { text: typeLabel(r.type), tone: 'muted' }]}
       meta={shortId(r.id, r.referenceId) + ' • ' + loc + ' • Submitted ' + relativeLong(r.createdAt) + ' • ' + r.completeness + '% complete'}
       hActions={[
-        btn('📞 Call Seller', () => callPhone(r.sellerName, r.phone)),
+        btn('💬 WhatsApp', () => reachOut('whatsapp', { name: r.sellerName, to: r.phone, property: r.title, entity: { type: 'sell_request', id: r.id } }), 'green'),
+        btn('📧 Email', () => reachOut('email', { name: r.sellerName, to: r.email, property: r.title, entity: { type: 'sell_request', id: r.id } }), 'outline', { disabled: !r.email }),
         btn('👁 Preview Listing', () =>
           modal.open({
             title: 'Listing Preview — How buyers see this',
@@ -175,8 +176,8 @@ export function SellRequestDetailPage() {
       banners={[
         lock,
         r.status === 'paused' ? { text: '⏸ Listing Paused — hidden from app', tone: 'muted', actions: [{ label: '▶ Resume Listing', onClick: resume }] } : null,
-        r.duplicateOf ? { text: 'Duplicate listing', tone: 'warn', actions: [{ label: 'View original →', onClick: () => navigate('/admin/enquiries/sell/' + r.duplicateOf) }] } : null,
-        r.acquisitionId ? { text: '🏗 In Acquisition Pipeline', tone: 'info', actions: [{ label: 'View acquisition →', onClick: () => navigate('/admin/acquisition/' + r.acquisitionId) }] } : null,
+        r.duplicateOf ? { text: 'Duplicate listing', tone: 'warn', actions: [{ label: 'View original', onClick: () => navigate('/admin/enquiries/sell/' + r.duplicateOf) }] } : null,
+        r.acquisitionId ? { text: '🏗 In Acquisition Pipeline', tone: 'info', actions: [{ label: 'View acquisition', onClick: () => navigate('/admin/acquisition/' + r.acquisitionId) }] } : null,
         r.status === 'rejected' && r.rejectionReason ? { text: 'Rejected — ' + r.rejectionReason, tone: 'error' } : null,
       ]}
       main={[
@@ -235,7 +236,7 @@ export function SellRequestDetailPage() {
             { label: 'Saves', value: r.metrics.saveCount },
           ],
           banners: [
-            { text: '💡 Consider boosting this listing', tone: 'info', action: { label: 'Boost Listing →', onClick: () => navigate('/admin/tools/pricing') } },
+            { text: '💡 Consider boosting this listing', tone: 'info', action: { label: 'Boost Listing', onClick: () => navigate('/admin/tools/pricing') } },
             r.photos.length ? null : { text: '📸 Add photos to increase views by 3x', tone: 'muted' },
             r.askingPrice ? null : { text: '💰 Add price to attract more buyers', tone: 'muted' },
           ],
@@ -243,7 +244,7 @@ export function SellRequestDetailPage() {
         wf.notes(),
       ]}
       side={[
-        personSection('Seller Info', { name: r.sellerName, phone: r.phone, email: r.email }, [{ label: 'KYC', value: statusLabel(r.kycStatus) }, { label: 'City', value: r.city }], r.sellerId ? '/admin/users/' + r.sellerId : null, 'View Seller Profile →', navigate),
+        personSection('Seller Info', { name: r.sellerName, phone: r.phone, email: r.email }, [{ label: 'KYC', value: statusLabel(r.kycStatus) }, { label: 'City', value: r.city }], r.sellerId ? '/admin/users/' + r.sellerId : null, 'View Seller Profile', navigate),
         { title: 'Listing Completeness', subtitle: r.completeness + '%', checks: checklist.map(([label, done]) => ({ label, done })), actions: [btn('Improve completeness', () => requestChanges('whatsapp'))] },
         {
           title: 'Similar in Area',

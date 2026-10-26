@@ -37,13 +37,13 @@
 .panelTitle { font-size: 16px; line-height: 1; font-weight: 600; }
 .chartBox { display: flex; height: 280px; align-items: center; justify-content: center; font-size: 14px; line-height: 20px; color: var(--color-muted); }
 .chartTip { pointer-events: none; position: absolute; z-index: 5; white-space: nowrap; border-radius: 8px; border: 1px solid var(--color-border); background: #ffffff; padding: 10px; font-size: 12px; line-height: 1.5; }
-.tableWrap { flex: 1; overflow-x: auto; padding: 0 20px 20px; }
-.table { width: 100%; font-size: 14px; line-height: 20px; }
-.thead { border-bottom: 1px solid var(--color-border); text-align: left; font-size: 12px; line-height: 16px; text-transform: uppercase; letter-spacing: 0.025em; color: var(--color-muted); }
-.th { padding: 0 16px 12px 0; font-weight: 700; }
+.tableWrap { flex: 1; overflow-x: hidden; padding: 0 20px 20px; }
+.table { width: 100%; font-size: 13px; line-height: 18px; }
+.thead { border-bottom: 1px solid var(--color-border); text-align: left; font-size: 11px; line-height: 16px; text-transform: uppercase; letter-spacing: 0.025em; color: var(--color-muted); }
+.th { padding: 0 12px 8px 0; font-weight: 700; white-space: nowrap; }
 .tr { cursor: pointer; transition: background-color 150ms; }
 .tr:hover { background: #eff6ff; }
-.td { padding: 12px 16px 12px 0; }
+.td { padding: 8px 12px 8px 0; white-space: nowrap; }
 .tdEmpty { padding: 32px 0; text-align: center; font-size: 14px; line-height: 20px; color: var(--color-muted); }
 .rowBtn { display: inline-flex; height: 32px; align-items: center; justify-content: center; gap: 8px; border-radius: 8px; border: 1px solid var(--color-border); background: #ffffff; padding: 0 12px; font-size: 12px; line-height: 16px; font-weight: 500; white-space: nowrap; transition: background-color 150ms; }
 .rowBtn:hover { background: #f1f5f9; }
@@ -63,3 +63,15 @@
 .slaBtn:hover { background: #f1f5f9; }
 .slaAll { margin-top: 16px; display: inline-flex; height: 36px; width: 100%; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid var(--color-border); font-size: 14px; line-height: 20px; font-weight: 500; color: #0f172a; text-decoration: none; }
 .slaAll:hover { background: #f1f5f9; color: #0f172a; text-decoration: none; }
+
+@media (max-width: 767px) {
+  .heroTitle { font-size: 24px; line-height: 32px; }
+  .kpiBody { min-height: 0; padding: 16px; }
+  .tableWrap { overflow: visible; padding: 0 12px 12px; }
+  .table, .table tbody { display: block; }
+  .thead { display: none; }
+  .tr { display: block; margin-bottom: 10px; border: 1px solid var(--color-border); border-radius: 12px; background: #ffffff; }
+  .td { display: grid; grid-template-columns: minmax(96px, 34%) minmax(0, 1fr); gap: 8px; align-items: center; padding: 10px 12px; border-bottom: 1px solid #f1f5f9; white-space: normal; }
+  .tr .td:last-child { border-bottom: 0; }
+  .td::before { content: attr(data-label); font-size: 11px; line-height: 16px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-muted); }
+}

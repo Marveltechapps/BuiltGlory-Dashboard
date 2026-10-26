@@ -185,7 +185,7 @@ export function AppContentTab() {
         rows: banners.map((b, i) => ({
           key: b.id,
           title: i + 1 + '. ' + b.title,
-          sub: (b.subtitle ? b.subtitle + ' · ' : '') + 'CTA "' + (b.ctaText || 'View') + '" · → ' + (b.navigateTo || 'No action'),
+          sub: (b.subtitle ? b.subtitle + ' · ' : '') + 'CTA "' + (b.ctaText || 'View') + '" · ' + (b.navigateTo || 'No action'),
           badges: [badge(b.isActive ? 'Active' : 'Inactive', b.isActive ? 'green' : 'muted')],
           actions: [
             { label: '↑', onClick: () => void saveBanners(move(banners, i, -1)) },
@@ -248,7 +248,7 @@ export function AppContentTab() {
             ],
           })),
         ],
-        empty: featured.length || cand.length ? '' : propsQ.isPending ? 'Loading properties…' : 'Search and add your first →',
+        empty: featured.length || cand.length ? '' : propsQ.isPending ? 'Loading properties…' : 'Search and add your first',
       },
       {
         title: '🚀 Upcoming Properties',
@@ -472,7 +472,7 @@ export function AppContentTab() {
   }
 
   if (cur === 'push') {
-    main.push({ title: 'Push Notifications', text: 'Compose, schedule and review delivery reports from the Push Notifications tab.', actions: [btn('Open Push Notifications →', () => navigate('/admin/tools/push'), 'primary')] });
+    main.push({ title: 'Push Notifications', text: 'Compose, schedule and review delivery reports from the Push Notifications tab.', actions: [btn('Open Push Notifications', () => navigate('/admin/tools/push'), 'primary')] });
   }
 
   const err = tc.save.error || contentMut.error || propMut.error;

@@ -5,9 +5,8 @@ import { emptyFor, matches, readView, tableStateOf, writeView } from '../../../c
 import { InnerTabs, ListHeader, PageStack } from '../../../components/ui/ListHeader';
 import { CONTACT_ICON, INTEREST } from '../../../constants/enquiries';
 import { useSalesTeam } from '../../../hooks/useTeam';
-import { callPhone } from '../../../lib/contact';
+import { reachOut } from '../../../lib/contact';
 import { badge, initials, price, relativeLong, typeLabel } from '../../../lib/format';
-import { openCompose } from '../../../store/uiStore';
 import type { BuyEnquiry } from '../../../types/enquiries';
 import { useBuyEnquiries } from '../hooks/useEnquiries';
 import { EntityCards, type EntityCard } from './EntityCards';
@@ -29,10 +28,11 @@ export function BuyEnquiriesTab() {
   const list = all.filter((e) => (statusF === 'all' || e.status === statusF) && matches(search, e.buyerName, e.phone));
   const assignee = (e: BuyEnquiry) => nameOf(e.assignedTo, e.assignedName) || e.assignedName;
   const open = (e: BuyEnquiry) => () => navigate('/admin/enquiries/buy/' + e.id);
-  const wa = (e: BuyEnquiry) => () => openCompose({ channel: 'whatsapp', name: e.buyerName, to: e.phone, property: e.propertyTitle, entity: { type: 'buy_enquiry', id: e.id } });
+  const wa = (e: BuyEnquiry) => () => reachOut('whatsapp', { name: e.buyerName, to: e.phone, property: e.propertyTitle, entity: { type: 'buy_enquiry', id: e.id } });
+  const mail = (e: BuyEnquiry) => () => reachOut('email', { name: e.buyerName, to: e.email, property: e.propertyTitle, entity: { type: 'buy_enquiry', id: e.id } });
   const flagsOf = (e: BuyEnquiry) => [
     e.status === 'new' && Date.now() - Date.parse(e.createdAt) > 7 * D ? { text: 'No response 7d+', bg: '#fee2e2', fg: '#b91c1c' } : null,
-    e.duplicateOf ? { text: 'Duplicate · View original →', bg: '#fef3c7', fg: '#92400e', onClick: () => navigate('/admin/enquiries/buy/' + e.duplicateOf) } : null,
+    e.duplicateOf ? { text: 'Duplicate · View original', bg: '#fef3c7', fg: '#92400e', onClick: () => navigate('/admin/enquiries/buy/' + e.duplicateOf) } : null,
   ];
   const interest = (e: BuyEnquiry) => INTEREST[e.interest] ?? ['Details', 'muted'];
   const state = tableStateOf(q, list);
@@ -54,9 +54,9 @@ export function BuyEnquiriesTab() {
       { title: relativeLong(e.createdAt), muted: true },
       {
         actions: [
-          { icon: 'phone', title: 'Call', onClick: () => callPhone(e.buyerName, e.phone) },
           { icon: 'message-circle', title: 'WhatsApp', variant: 'green', onClick: wa(e) },
-          { label: 'View →', onClick: open(e) },
+          { icon: 'mail', title: 'Email', onClick: mail(e) },
+          { label: 'View', onClick: open(e) },
         ],
       },
     ],
@@ -71,7 +71,7 @@ export function BuyEnquiriesTab() {
     prop: e.propertyTitle,
     propSub: price(e.propertyPrice),
     open: open(e),
-    cta: 'View Details →',
+    cta: 'View Details',
     lines: [
       { label: 'Interest', value: interest(e)[0] },
       { label: 'Preferred visit', value: visitPrefLabel(e) },
@@ -80,8 +80,8 @@ export function BuyEnquiriesTab() {
     ],
     flags: flagsOf(e).filter((f): f is NonNullable<typeof f> => !!f).map(({ text, bg, fg }) => ({ text, bg, fg })),
     actions: [
-      { icon: 'phone', label: 'Call', color: '#0f172a', onClick: () => callPhone(e.buyerName, e.phone) },
       { icon: 'message-circle', label: 'WhatsApp', color: '#15803d', onClick: wa(e) },
+      { icon: 'mail', label: 'Email', color: '#0f172a', onClick: mail(e) },
     ],
   }));
 

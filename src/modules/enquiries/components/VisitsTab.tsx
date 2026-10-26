@@ -6,7 +6,7 @@ import { Icon } from '../../../components/ui/Icon';
 import { ListHeader, PageStack } from '../../../components/ui/ListHeader';
 import { useRefreshingMutation } from '../../../hooks/useRefreshingMutation';
 import { useSalesTeam } from '../../../hooks/useTeam';
-import { callPhone } from '../../../lib/contact';
+import { reachOut } from '../../../lib/contact';
 import { addDaysIso, badge, initials, parseTimeMinutes, time12, todayIso } from '../../../lib/format';
 import { updateVisitStatus, type VisitStatusBody } from '../../../services/enquiries';
 import { toast } from '../../../store/uiStore';
@@ -142,7 +142,8 @@ export function VisitsTab() {
                     <span className={styles.ellipsis} style={{ display: 'block', fontSize: 12, lineHeight: '16px', color: '#64748b' }}>{v.propertyTitle}</span>
                   </button>
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <button type="button" className={styles.miniBtn} onClick={() => callPhone(v.buyerName, v.phone)}><Icon name="phone" size={12} />Call</button>
+                    <button type="button" className={styles.miniBtn} onClick={() => reachOut('whatsapp', { name: v.buyerName, to: v.phone, property: v.propertyTitle, entity: { type: 'visit', id: v.id } })}><Icon name="message-circle" size={12} />WhatsApp</button>
+                    <button type="button" className={styles.miniBtn} onClick={() => reachOut('email', { name: v.buyerName, to: v.email, property: v.propertyTitle, entity: { type: 'visit', id: v.id } })}><Icon name="mail" size={12} />Email</button>
                     <button type="button" className={styles.miniBtn} onClick={() => go(v)}><Icon name={v.visitType === 'virtual' ? 'video' : 'map-pin'} size={12} />{v.visitType === 'virtual' ? 'Join' : 'Directions'}</button>
                   </div>
                 </div>

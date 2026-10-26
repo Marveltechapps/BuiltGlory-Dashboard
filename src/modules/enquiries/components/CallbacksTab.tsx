@@ -7,7 +7,7 @@ import { InnerTabs, ListHeader, PageStack } from '../../../components/ui/ListHea
 import { CALLBACK_CATEGORY } from '../../../constants/enquiries';
 import { useRefreshingMutation } from '../../../hooks/useRefreshingMutation';
 import { useSalesTeam } from '../../../hooks/useTeam';
-import { callPhone } from '../../../lib/contact';
+import { reachOut } from '../../../lib/contact';
 import { badge, initials, statusLabel } from '../../../lib/format';
 import { addCallbackAttempt, resolveCallback } from '../../../services/enquiries';
 import { askConfirm, toast } from '../../../store/uiStore';
@@ -50,14 +50,8 @@ export function CallbacksTab() {
       { title: nameOf(c.assignedTo, c.assignedName) || c.assignedName || 'Unassigned' },
       {
         actions: [
-          {
-            icon: 'phone',
-            title: 'Call',
-            onClick: () => {
-              callPhone(c.callerName, c.phone);
-              attempt.mutate({ id: c.id });
-            },
-          },
+          { icon: 'message-circle', title: 'WhatsApp', variant: 'green', onClick: () => reachOut('whatsapp', { name: c.callerName, to: c.phone, property: c.propertyTitle, entity: { type: 'callback', id: c.id } }) },
+          { icon: 'mail', title: 'Email', onClick: () => reachOut('email', { name: c.callerName, to: c.email, property: c.propertyTitle, entity: { type: 'callback', id: c.id } }) },
           c.status !== 'resolved'
             ? {
                 label: 'Mark Resolved',

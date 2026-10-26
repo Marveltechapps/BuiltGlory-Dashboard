@@ -2,7 +2,7 @@ import type { KeyboardEvent, ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Icon } from '../../../components/ui/Icon';
 import { Skeleton, SkeletonRows } from '../../../components/ui/Skeleton';
-import { callPhone } from '../../../lib/contact';
+import { reachOut } from '../../../lib/contact';
 import { addDaysIso, date, initials, isoDay, parseTimeMinutes, relative, statusLabel, todayIso } from '../../../lib/format';
 import type { AdminOverview, OverviewSlaItem } from '../../../types/overview';
 import styles from './Overview.module.css';
@@ -51,7 +51,7 @@ export function RecentEnquiriesTable({ rows, loading }: { rows: NonNullable<Admi
   const navigate = useNavigate();
   return (
     <div className={styles.tableWrap}>
-      <table className={styles.table} style={{ minWidth: 520 }}>
+      <table className={styles.table}>
         <thead>
           <tr className={styles.thead}>
             <th className={styles.th}>Buyer Name</th>
@@ -69,15 +69,15 @@ export function RecentEnquiriesTable({ rows, loading }: { rows: NonNullable<Admi
             const [bg, fg] = enquiryBadge(r.status);
             return (
               <tr key={r.id} className={styles.tr} style={{ borderBottom: i === rows.length - 1 ? 0 : '1px solid rgba(226,232,240,0.6)' }} onClick={() => navigate(r.viewPath)}>
-                <td className={styles.td} style={{ fontWeight: 500 }}>{r.buyer}</td>
-                <td className={styles.td} style={{ color: '#64748b' }}>{r.property}</td>
-                <td className={styles.td}>{r.type}</td>
-                <td className={styles.td} style={{ color: '#64748b' }}>{date(r.date)}</td>
-                <td className={styles.td}>
+                <td className={styles.td} data-label="Buyer Name" style={{ fontWeight: 500 }}>{r.buyer}</td>
+                <td className={styles.td} data-label="Property" style={{ color: '#64748b' }}>{r.property}</td>
+                <td className={styles.td} data-label="Type">{r.type}</td>
+                <td className={styles.td} data-label="Date" style={{ color: '#64748b' }}>{date(r.date)}</td>
+                <td className={styles.td} data-label="Status">
                   <span style={{ display: 'inline-flex', alignItems: 'center', borderRadius: 9999, padding: '2px 8px', fontSize: 12, lineHeight: '16px', fontWeight: 500, background: bg, color: fg }}>{statusLabel(r.status)}</span>
                 </td>
-                <td style={{ padding: '12px 0' }} onClick={(e) => e.stopPropagation()}>
-                  <button type="button" className={styles.rowBtn} onClick={() => navigate(r.viewPath)}>View →</button>
+                <td className={styles.td} data-label="Action" style={{ padding: '12px 0' }} onClick={(e) => e.stopPropagation()}>
+                  <button type="button" className={styles.rowBtn} onClick={() => navigate(r.viewPath)}>View</button>
                 </td>
               </tr>
             );
@@ -92,7 +92,7 @@ export function PendingApprovalsTable({ rows, loading }: { rows: NonNullable<Adm
   const navigate = useNavigate();
   return (
     <div className={styles.tableWrap}>
-      <table className={styles.table} style={{ minWidth: 480 }}>
+      <table className={styles.table}>
         <thead>
           <tr className={styles.thead}>
             <th className={styles.th}>Seller</th>
@@ -107,12 +107,12 @@ export function PendingApprovalsTable({ rows, loading }: { rows: NonNullable<Adm
           {rows.length === 0 && !loading && <tr><td colSpan={5} className={styles.tdEmpty}>No pending seller approvals</td></tr>}
           {rows.map((r, i) => (
             <tr key={r.id} className={styles.tr} style={{ borderBottom: i === rows.length - 1 ? 0 : '1px solid rgba(226,232,240,0.6)' }} onClick={() => navigate(r.viewPath)}>
-              <td className={styles.td} style={{ fontWeight: 500 }}>{r.seller}</td>
-              <td className={styles.td}>{r.title}</td>
-              <td className={styles.td} style={{ color: '#64748b' }}>{r.type}</td>
-              <td className={styles.td} style={{ color: '#64748b' }}>{date(r.submitted)}</td>
-              <td style={{ padding: '12px 0' }} onClick={(e) => e.stopPropagation()}>
-                <button type="button" className={styles.rowBtn} onClick={() => navigate(r.viewPath)}>Review →</button>
+              <td className={styles.td} data-label="Seller" style={{ fontWeight: 500 }}>{r.seller}</td>
+              <td className={styles.td} data-label="Property Title">{r.title}</td>
+              <td className={styles.td} data-label="Type" style={{ color: '#64748b' }}>{r.type}</td>
+              <td className={styles.td} data-label="Submitted" style={{ color: '#64748b' }}>{date(r.submitted)}</td>
+              <td className={styles.td} data-label="Action" style={{ padding: '12px 0' }} onClick={(e) => e.stopPropagation()}>
+                <button type="button" className={styles.rowBtn} onClick={() => navigate(r.viewPath)}>Review</button>
               </td>
             </tr>
           ))}
@@ -183,7 +183,7 @@ export function TodaySchedule({ visits, loading }: { visits: NonNullable<AdminOv
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', borderRadius: 9999, background: '#f1f5f9', padding: '2px 8px', fontSize: 12, lineHeight: '16px', fontWeight: 500, color: '#64748b' }}>{todayVisits.length} visits</span>
-            <button type="button" className="bg-link-btn" onClick={() => navigate('/admin/enquiries/visits')}>View All →</button>
+            <button type="button" className="bg-link-btn" onClick={() => navigate('/admin/enquiries/visits')}>View All</button>
           </div>
         </div>
       </div>
@@ -215,7 +215,7 @@ export function TodaySchedule({ visits, loading }: { visits: NonNullable<AdminOv
                       )}
                     </div>
                   </div>
-                  <button type="button" className="bg-link-btn" style={{ flexShrink: 0 }} onClick={(e) => { e.stopPropagation(); open(); }}>View →</button>
+                  <button type="button" className="bg-link-btn" style={{ flexShrink: 0 }} onClick={(e) => { e.stopPropagation(); open(); }}>View</button>
                 </li>
               );
             })}
@@ -304,7 +304,7 @@ export function SlaCard({ title, subtitle, icon, iconColor, list, viewAllHref, v
           <ul style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {top3.map((it) => {
               const lb = slaLabel(it);
-              const isCall = call && !!it.phone;
+              const contact = { name: it.name, property: it.property, entity: { type: 'interior_lead' as const, id: it.id } };
               return (
                 <li key={it.id} className={styles.slaItem}>
                   <button type="button" onClick={() => navigate(it.viewPath)} style={{ display: 'flex', minWidth: 0, flex: 1, cursor: 'pointer', alignItems: 'center', gap: 8, textAlign: 'left' }}>
@@ -318,7 +318,14 @@ export function SlaCard({ title, subtitle, icon, iconColor, list, viewAllHref, v
                   </button>
                   <div style={{ display: 'flex', flexShrink: 0, alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 12, lineHeight: '16px', fontWeight: 500, color: TONE_COLOR[lb.tone] }}>{lb.text}</span>
-                    <button type="button" className={styles.slaBtn} onClick={() => (isCall ? callPhone(it.name, it.phone) : navigate(it.viewPath))}>{isCall ? 'Call' : 'View'}</button>
+                    {call ? (
+                      <>
+                        <button type="button" className={styles.slaBtn} onClick={() => reachOut('whatsapp', { ...contact, to: it.phone })}>WhatsApp</button>
+                        <button type="button" className={styles.slaBtn} onClick={() => reachOut('email', { ...contact, to: it.email })}>Email</button>
+                      </>
+                    ) : (
+                      <button type="button" className={styles.slaBtn} onClick={() => navigate(it.viewPath)}>View</button>
+                    )}
                   </div>
                 </li>
               );

@@ -238,7 +238,7 @@ export function AddProperty() {
   return (
     <div className={styles.narrow}>
       <div>
-        <h2 className={styles.h2}>Add Property</h2>
+        <h2 className="bg-sr-only">Add Property</h2>
         <p className={styles.lead}>Choose a property type to load its fields</p>
       </div>
       <div className={styles.panel}>
@@ -269,7 +269,7 @@ export function AddProperty() {
         {dup && (
           <div className={styles.dup}>
             {'⚠️ A property with a similar title already exists: ' + dup.title}
-            <button type="button" onClick={() => navigate('/admin/properties/' + dup.id)}>View existing →</button>
+            <button type="button" onClick={() => navigate('/admin/properties/' + dup.id)}>View existing</button>
           </div>
         )}
       </div>

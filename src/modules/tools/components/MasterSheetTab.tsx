@@ -38,7 +38,7 @@ export function MasterSheetTab() {
       meta="Upload and manage property data using the Builtglory Master Sheet"
       single
       main={[
-        { title: 'Bulk Upload', text: 'The Master Sheet bulk upload is managed under Properties section for better organization.', actions: [btn('Go to Bulk Upload →', () => navigate('/admin/properties/upload'), 'primary')] },
+        { title: 'Bulk Upload', text: 'The Master Sheet bulk upload is managed under Properties section for better organization.', actions: [btn('Go to Bulk Upload', () => navigate('/admin/properties/upload'), 'primary')] },
         {
           title: 'Import History',
           rows: jobs.map((j) => ({

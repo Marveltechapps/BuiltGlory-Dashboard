@@ -79,3 +79,5 @@ export const setUserBlocked = (id: string, isBlocked: boolean, blockedReason?: s
 export const assignUser = (id: string, assignedTo: string) => patch(id, '/assign', { assignedTo });
 /** PATCH /api/v1/admin/users/:userId/fema — { status, notes } */
 export const updateUserFema = (id: string, status: FemaStatus, notes?: string | null) => patch(id, '/fema', { status, ...(notes !== undefined ? { notes } : {}) });
+/** PATCH /api/v1/admin/users/:userId/kyc — { status, notes } */
+export const updateUserKyc = (id: string, status: KycStatus, notes?: string | null) => patch(id, '/kyc', { status, ...(notes !== undefined ? { notes } : {}) });

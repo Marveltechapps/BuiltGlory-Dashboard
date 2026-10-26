@@ -304,7 +304,7 @@ export function PropertyDetailPage() {
             { label: '❤️ Saves', value: p.saves },
           ],
           banners: p.views > 1200 ? [{ text: '🔥 Popular property', tone: 'warn' }] : [],
-          actions: [btn('View All Enquiries →', () => navigate('/admin/enquiries/buy'), 'link')],
+          actions: [btn('View All Enquiries', () => navigate('/admin/enquiries/buy'), 'link')],
         },
         {
           title: 'Listing Status',
@@ -333,7 +333,7 @@ export function PropertyDetailPage() {
         {
           title: 'Source Info',
           text: sourceText,
-          actions: p.acquisitionId ? [btn('View Acquisition →', () => navigate('/admin/acquisition/' + p.acquisitionId), 'link')] : [],
+          actions: p.acquisitionId ? [btn('View Acquisition', () => navigate('/admin/acquisition/' + p.acquisitionId), 'link')] : [],
         },
         {
           title: 'Dates',

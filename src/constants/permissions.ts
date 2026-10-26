@@ -35,9 +35,9 @@ const SECTION_PERMISSIONS: Record<string, AdminPermission[]> = {
 };
 
 const PATH_RULES: Array<[RegExp, AdminPermission[]]> = [
-  [/^\/admin\/overview$/, []], [/^\/admin\/enquiries/, ['enquiries.read']], [/^\/admin\/visits/, ['enquiries.read']], [/^\/admin\/callbacks/, ['enquiries.read']],
+  [/^\/admin\/overview$/, []], [/^\/admin\/enquiries/, ['enquiries.read']], [/^\/admin\/visits/, ['visits.read', 'enquiries.read']], [/^\/admin\/callbacks/, ['enquiries.read']],
   [/^\/admin\/acquisition/, ['acquisitions.read']], [/^\/admin\/sales/, ['sales.read']], [/^\/admin\/properties\/(?:add|upload)/, ['properties.write']],
-  [/^\/admin\/properties/, ['properties.read']], [/^\/admin\/users/, ['users.read']], [/^\/admin\/reports\/export/, ['audit.read']], [/^\/admin\/reports/, ['sales.read']],
+  [/^\/admin\/properties/, ['properties.read']], [/^\/admin\/users/, ['users.read']], [/^\/admin\/reports\/acquisition/, ['acquisitions.read']], [/^\/admin\/reports\/export/, ['audit.read']], [/^\/admin\/reports/, ['sales.read']],
   [/^\/admin\/tools/, ['properties.write', 'support.write', 'admin.access.manage']], [/^\/admin\/settings\/access/, ['admin.access.manage']],
   [/^\/admin\/settings\/audit/, ['audit.read']], [/^\/admin\/settings\/feedback/, ['support.read']], [/^\/admin\/settings\/legal/, ['support.write']],
   [/^\/admin\/settings\/support/, ['support.read']], [/^\/admin\/settings\/general/, ['admin.access.manage']],

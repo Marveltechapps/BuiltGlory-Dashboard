@@ -16,10 +16,10 @@ import { acqStage, date, price, relativeLong, salesStage, statusBadge, statusLab
 import { listAcquisitions } from '../../../services/acquisitions';
 import { listBuyEnquiries, listSellRequests, listVisits } from '../../../services/enquiries';
 import { listSalesDeals } from '../../../services/sales';
-import { assignUser, exportUser, getUser, setUserBlocked, updateUser, updateUserFema } from '../../../services/users';
+import { assignUser, exportUser, getUser, setUserBlocked, updateUser, updateUserFema, updateUserKyc } from '../../../services/users';
 import { sendPush } from '../../../services/workflow';
 import { openCompose, toast } from '../../../store/uiStore';
-import type { FemaStatus, UserUpdateBody } from '../../../types/users';
+import type { FemaStatus, KycStatus, UserUpdateBody } from '../../../types/users';
 import { FEMA_LABEL } from '../constants';
 
 export function UserDetailPage() {
@@ -27,7 +27,7 @@ export function UserDetailPage() {
   const navigate = useNavigate();
   const f = useFormFields();
   const modal = useFormModal();
-  const { can } = useSession();
+  const { can, canAny } = useSession();
   const q = useQuery({ queryKey: ['user', id], queryFn: ({ signal }) => getUser(id, signal), retry: false });
   const u = q.data;
   // History sections are built from the real pipeline lists (shared cache with the list screens).
@@ -44,6 +44,7 @@ export function UserDetailPage() {
   const block = useRefreshingMutation((v: { on: boolean; reason?: string | null }) => setUserBlocked(id, v.on, v.reason), keys);
   const assign = useRefreshingMutation((to: string) => assignUser(id, to), keys);
   const fema = useRefreshingMutation((v: { status: FemaStatus; notes?: string | null }) => updateUserFema(id, v.status, v.notes), keys);
+  const kyc = useRefreshingMutation((v: { status: KycStatus; notes?: string | null }) => updateUserKyc(id, v.status, v.notes), keys);
   const push = useRefreshingMutation((v: { title: string; body: string; audience: 'buyer' | 'seller' }) => sendPush('user', id, { userId: id, audience: v.audience, notificationId: 'admin_manual', template: { title: v.title, body: v.body } }), [['logs', 'user', id], ['timeline', 'user', id]]);
   const exportData = useRefreshingMutation(() => exportUser(id), []);
 
@@ -57,6 +58,9 @@ export function UserDetailPage() {
   const acqs = (acqQ.data?.items ?? []).filter((a) => a.sellerId === u.id);
   const loading = (x: { isPending: boolean; fetchStatus: string }) => x.isPending && x.fetchStatus !== 'idle';
   const canAssign = can('users.write');
+  const canEdit = can('users.write');
+  const canBlock = can('users.write') || can('users.kyc.review');
+  const canPush = canAny(['users.write', 'support.write', 'properties.write', 'sales.write', 'enquiries.write', 'acquisitions.write', 'visits.write', 'admin.access.manage']);
   const nri = u.userType !== 'resident';
   const first = u.name.split(' ')[0];
   const assignedName = nameOf(u.assignedTo, u.assignedToName) || u.assignedToName || (u.assignedTo ? 'Assigned' : 'Unassigned');
@@ -132,6 +136,7 @@ export function UserDetailPage() {
     });
 
   const setFema = (s: FemaStatus) => fema.mutate({ status: s }, { onSuccess: () => toast(FEMA_LABEL[s] || s) });
+  const setKyc = (status: KycStatus, notes?: string) => kyc.mutate({ status, notes }, { onSuccess: () => toast('KYC ' + statusLabel(status)) });
 
   const doExport = () =>
     exportData.mutate(undefined, {
@@ -153,11 +158,11 @@ export function UserDetailPage() {
         u.isBlocked ? { text: 'Blocked', tone: 'red' } : { text: 'Active', tone: 'green' },
       ]}
       meta={u.referenceId + ' • ' + u.phone + ' • Registered ' + date(u.registeredAt) + ' • Last login ' + (u.lastLoginAt ? relativeLong(u.lastLoginAt) : 'never')}
-      banners={[lock, u.isBlocked ? { text: '🚫 This user is blocked' + (u.blockedReason ? ' — ' + u.blockedReason : ''), tone: 'error', actions: [{ label: 'Unblock', onClick: toggleBlock }] } : null]}
+      banners={[lock, u.isBlocked ? { text: '🚫 This user is blocked' + (u.blockedReason ? ' — ' + u.blockedReason : ''), tone: 'error', actions: canBlock ? [{ label: 'Unblock', onClick: toggleBlock }] : [] } : null]}
       hActions={[
         ...contactActions({ name: u.name, phone: u.phone, email: u.email, entity: { type: 'user', id: u.id } }),
         btn('👤 Assign To admin', assignModal, 'outline', { disabled: !canAssign, title: canAssign ? '' : 'You do not have permission to change assignment.' }),
-        btn('🔔 Send Push Notification', sendPushModal),
+        btn('🔔 Send Push Notification', sendPushModal, 'outline', { disabled: !canPush, title: canPush ? '' : 'You do not have permission to send a push.' }),
         btn('📥 Export User Data', doExport, 'outline', { loading: exportData.isPending }),
       ]}
       main={[
@@ -174,7 +179,7 @@ export function UserDetailPage() {
         {
           title: 'Enquiry History',
           tag: 'App screen: B-10, P-02',
-          rows: enq.map((e) => ({ key: e.id, title: e.propertyTitle, sub: relativeLong(e.createdAt), badges: [statusBadge(e.status)], onClick: () => navigate('/admin/enquiries/buy/' + e.id), actions: [{ label: 'View →', onClick: () => navigate('/admin/enquiries/buy/' + e.id) }] })),
+          rows: enq.map((e) => ({ key: e.id, title: e.propertyTitle, sub: relativeLong(e.createdAt), badges: [statusBadge(e.status)], onClick: () => navigate('/admin/enquiries/buy/' + e.id), actions: [{ label: 'View', onClick: () => navigate('/admin/enquiries/buy/' + e.id) }] })),
           empty: enq.length ? '' : loading(enqQ) ? 'Loading…' : enqQ.isError ? 'Could not load enquiries' : 'No enquiries yet',
         },
         {
@@ -186,7 +191,7 @@ export function UserDetailPage() {
         {
           title: 'Deal History',
           tag: 'App screen: P-04',
-          rows: deals.map((d) => ({ key: d.id, title: d.propertyTitle, sub: salesStage(d.stage) + ' · ' + price(d.agreedPrice || d.listedPrice), onClick: () => navigate('/admin/sales/' + d.id), actions: [{ label: 'View Deal →', onClick: () => navigate('/admin/sales/' + d.id) }] })),
+          rows: deals.map((d) => ({ key: d.id, title: d.propertyTitle, sub: salesStage(d.stage) + ' · ' + price(d.agreedPrice || d.listedPrice), onClick: () => navigate('/admin/sales/' + d.id), actions: [{ label: 'View Deal', onClick: () => navigate('/admin/sales/' + d.id) }] })),
           empty: deals.length ? '' : loading(dealsQ) ? 'Loading…' : dealsQ.isError ? 'Could not load deals' : 'No deals yet',
         },
         {
@@ -197,6 +202,16 @@ export function UserDetailPage() {
             ...acqs.map((a) => ({ key: a.id, title: a.title, sub: 'Acquisition · ' + acqStage(a.stage), onClick: () => navigate('/admin/acquisition/' + a.id) })),
           ],
           empty: lists.length + acqs.length ? '' : u.role === 'buyer' ? 'No listings yet' : loading(sellQ) || loading(acqQ) ? 'Loading…' : 'No listings yet',
+        },
+        {
+          title: 'KYC review',
+          subtitle: 'Review the customer identity documents',
+          fields: [{ label: 'Status', value: statusLabel(u.kycStatus), strong: true }],
+          actions: [
+            btn('Mark verified', () => setKyc('verified'), 'green', { disabled: !can('users.kyc.review'), loading: kyc.isPending }),
+            btn('Mark pending', () => setKyc('pending'), 'outline', { disabled: !can('users.kyc.review'), loading: kyc.isPending }),
+            btn('Mark rejected', () => setKyc('rejected', 'Rejected by reviewer'), 'red', { disabled: !can('users.kyc.review'), loading: kyc.isPending }),
+          ],
         },
         nri
           ? {
@@ -238,7 +253,7 @@ export function UserDetailPage() {
             { label: 'Status', value: u.isBlocked ? 'Blocked' : 'Active' },
             { label: 'Assigned To', value: assignedName },
           ],
-          actions: [btn('📋 Copy phone', () => void copyText(u.phone), 'outline', { disabled: !u.phone }), btn('Edit Profile', editProfile, 'primary')],
+          actions: [btn('📋 Copy phone', () => void copyText(u.phone), 'outline', { disabled: !u.phone }), btn('Edit Profile', editProfile, 'primary', { disabled: !canEdit, title: canEdit ? '' : 'You do not have permission to edit this profile.' })],
         },
         {
           title: 'Actions',
@@ -246,8 +261,8 @@ export function UserDetailPage() {
           actions: [
             btn('📱 Send WhatsApp', () => openCompose({ channel: 'whatsapp', name: u.name, to: u.phone, body: 'Hi ' + first + ', this is the BuiltGlory team.', entity: { type: 'user', id: u.id } })),
             btn('📧 Send Email', () => openCompose({ channel: 'email', name: u.name, to: u.email, subject: 'Hello from BuiltGlory', body: 'Hi ' + first + ',\n\n', entity: { type: 'user', id: u.id } }), 'outline', { disabled: !u.email }),
-            btn('🔔 Send Push Notification', sendPushModal),
-            btn(u.isBlocked ? '✅ Unblock User' : '🚫 Block User', toggleBlock, u.isBlocked ? 'green' : 'red', { loading: block.isPending }),
+            btn('🔔 Send Push Notification', sendPushModal, 'outline', { disabled: !canPush, title: canPush ? '' : 'You do not have permission to send a push.' }),
+            btn(u.isBlocked ? '✅ Unblock User' : '🚫 Block User', toggleBlock, u.isBlocked ? 'green' : 'red', { loading: block.isPending, disabled: !canBlock, title: canBlock ? '' : 'You do not have permission to block this user.' }),
           ],
         },
         wf.notes('Admin Notes', 'Visible to admins only'),

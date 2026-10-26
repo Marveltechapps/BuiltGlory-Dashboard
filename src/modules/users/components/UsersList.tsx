@@ -7,6 +7,7 @@ import { Icon } from '../../../components/ui/Icon';
 import { PageStack } from '../../../components/ui/ListHeader';
 import { useRefreshingMutation } from '../../../hooks/useRefreshingMutation';
 import { useSalesTeam } from '../../../hooks/useTeam';
+import { useSession } from '../../../hooks/useSession';
 import { useViewport } from '../../../hooks/useViewport';
 import { badge, date, initials, price, relativeLong } from '../../../lib/format';
 import { listAcquisitions } from '../../../services/acquisitions';
@@ -34,6 +35,8 @@ const typeTags = (u: AdminUser) => [u.userType === 'pio' ? badge('PIO', 'indigo'
 
 export function UsersList({ tab }: { tab: Tab }) {
   const navigate = useNavigate();
+  const { can } = useSession();
+  const canBlock = can('users.write') || can('users.kyc.review');
   const { vw } = useViewport();
   const usersQ = useQuery({ queryKey: ['users'], queryFn: ({ signal }) => listUsers(signal) });
   // Segment flags and "Total Spent" are derived from the real pipeline records for each user.
@@ -120,7 +123,7 @@ export function UsersList({ tab }: { tab: Tab }) {
         { title: u.city || '—', sub: u.country && u.country !== 'India' ? u.country : u.state },
         { title: date(u.registeredAt), muted: true },
         { badges: [u.isBlocked ? badge('Blocked', 'red') : badge('Active', 'green')] },
-        { actions: [{ label: 'View →', onClick: open(u) }, { icon: 'more-horizontal', title: 'More actions', onClick: () => setMenuId(u.id) }] },
+        { actions: [{ label: 'View', onClick: open(u) }, { icon: 'more-horizontal', title: 'More actions', onClick: () => setMenuId(u.id) }] },
       ],
     };
   });
@@ -141,8 +144,7 @@ export function UsersList({ tab }: { tab: Tab }) {
       <div className={styles.head}>
         <div>
           <div className={styles.titleRow}>
-            <h2 className={styles.title}>Users</h2>
-            <span className={styles.count}>{base.length}</span>
+            <h2 className="bg-sr-only">Users</h2>
           </div>
           <p className={styles.lead}>Manage buyers, sellers, and access status</p>
         </div>
@@ -208,7 +210,7 @@ export function UsersList({ tab }: { tab: Tab }) {
                   <p>{'📍 ' + (u.city || '—') + (u.country && u.country !== 'India' ? ', ' + u.country : '')}</p>
                   <p>{'Last login ' + (u.lastLoginAt ? relativeLong(u.lastLoginAt) : 'never')}</p>
                 </div>
-                <span className={styles.cta}>View Profile →</span>
+                <span className={styles.cta}>View Profile</span>
               </div>
             );
           })}
@@ -260,9 +262,9 @@ export function UsersList({ tab }: { tab: Tab }) {
             >
               <Icon name="user-plus" size={16} />Assign To
             </button>
-            <button type="button" role="menuitem" className={styles.menuItem} style={{ color: mu.isBlocked ? '#15803d' : '#dc2626' }} onClick={done(() => toggleBlock(mu, stats(mu)))}>
+            {canBlock && <button type="button" role="menuitem" className={styles.menuItem} style={{ color: mu.isBlocked ? '#15803d' : '#dc2626' }} onClick={done(() => toggleBlock(mu, stats(mu)))}>
               <Icon name={mu.isBlocked ? 'unlock' : 'ban'} size={16} />{mu.isBlocked ? 'Unblock' : 'Block'}
-            </button>
+            </button>}
           </div>
         </div>
       )}
