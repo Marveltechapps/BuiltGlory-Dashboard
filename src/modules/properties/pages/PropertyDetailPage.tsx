@@ -5,6 +5,7 @@ import { btn } from '../../../components/detail/sections';
 import { useFormModal } from '../../../components/ui/FormModal';
 import { RecordDetailView } from '../../../components/ui/RecordDetailView';
 import { useEditLock } from '../../../hooks/useEditLock';
+import { useSession } from '../../../hooks/useSession';
 import { useFormFields } from '../../../hooks/useFormFields';
 import { useWorkflowSections } from '../../../hooks/useWorkflowSections';
 import { copyText } from '../../../lib/contact';
@@ -48,6 +49,7 @@ export function PropertyDetailPage() {
   const f = useFormFields();
   const modal = useFormModal();
   const act = usePropertyActions();
+  const { admin } = useSession();
   const q = useQuery({ queryKey: ['property', id], queryFn: ({ signal }) => getProperty(id, signal), retry: false });
   const p = q.data;
   const wf = useWorkflowSections('property', id, f, p?.createdAt);
@@ -311,10 +313,10 @@ export function PropertyDetailPage() {
           stack: true,
           actions: [
             ds === 'available' ? btn('⏸️ Pause Listing', () => confirmStatus('Pause listing?', () => act.pause(p))) : null,
-            p.status !== 'sold' ? btn('✅ Mark as Sold', () => confirmStatus('Mark as sold?', () => act.markSold(p))) : null,
+            p.status === 'available' || p.status === 'reserved' ? btn('✅ Mark as Sold', () => confirmStatus('Mark as sold?', () => act.markSold(p))) : null,
             ds === 'paused' ? btn('▶️ Make Available', () => confirmStatus('Make available?', () => act.publish(p, '▶️ Listing live'))) : null,
             p.status === 'draft' ? btn('▶️ Publish', () => confirmStatus('Publish property?', () => act.publish(p, '▶️ Published')), 'primary') : null,
-            p.status === 'sold' ? btn('♻️ Relist Property', () => confirmStatus('Relist property?', () => act.publish(p, '♻️ Relisted'))) : null,
+            p.status === 'sold' && (admin?.role === 'super_admin' || admin?.permissions?.includes('*')) ? btn('♻️ Relist Property', () => confirmStatus('Relist property?', () => act.publish(p, '♻️ Relisted'))) : null,
             btn('🗑 Delete Property', remove, 'red'),
           ],
         },

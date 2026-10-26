@@ -19,7 +19,7 @@ import { useWorkflowSections } from '../../../hooks/useWorkflowSections';
 import { acqStage, badge, date, price, relativeLong, shortId, statusLabel, todayIso, typeLabel } from '../../../lib/format';
 import { arr, asRaw, num, str, type Raw } from '../../../lib/raw';
 import { convertAcquisitionToProperty, getAcquisition, updateAcquisition, updateAcquisitionSection, updateAcquisitionStage, type AcquisitionSection } from '../../../services/acquisitions';
-import { updateProperty } from '../../../services/properties';
+import { updateProperty, updatePropertyStatus } from '../../../services/properties';
 import { sendPush, uploadProof } from '../../../services/workflow';
 import { askConfirm, openCompose, toast } from '../../../store/uiStore';
 import type { SectionSpec } from '../../../types/detail';
@@ -29,6 +29,13 @@ const TAB: Record<string, string> = { pending_review: 'pending', site_inspection
 const REVIEW = ['Photos reviewed', 'Price is reasonable for locality', 'Ownership documents present', 'Seller identity verified', 'Location verified on map'];
 const PREACQ = ['All documents verified', 'Payment proof uploaded', 'Seller confirmation received', 'Legal clearance confirmed', 'Property handover scheduled'];
 const ADV_CHECKS = ['Registration Records verified', 'Revenue Records verified', 'Approvals & Planning verified', 'Tax & Utility Records verified', 'Loan & Encumbrance verified', 'Court Records verified', 'Government Acquisition Records verified', 'Ownership type documents verified'];
+const LEGAL_GATES: Array<[string, string]> = [
+  ['ownership_verified', 'Ownership verified'],
+  ['encumbrance_clear', 'Encumbrance clear'],
+  ['tax_clear', 'Tax clear'],
+  ['litigation_clear', 'Litigation clear'],
+  ['approvals_verified', 'Approvals verified'],
+];
 const REJECT_REASONS = ['Price too high', 'Poor condition', 'Location not suitable', 'Incomplete info', 'Duplicate', 'Other'];
 
 export function AcquisitionDetailPage() {
@@ -202,7 +209,7 @@ export function AcquisitionDetailPage() {
               fields: [{ key: 'date', label: 'Date', type: 'date', min: today, required: true }, { key: 'time', label: 'Time', type: 'select', options: SLOTS, default: '11:00 AM' }],
               onSubmit: (v) => saveIns({ date: v.date, time: v.time }, '📅 Inspection rescheduled'),
             })),
-          btn('Cancel', () => askConfirm({ title: 'Cancel inspection?', message: 'The property will move back to Pending Review.', confirmLabel: 'Cancel Inspection', tone: 'destructive', onConfirm: () => move('pending_review', { valuation: { ...val, siteInspection: null } }) }), 'red'),
+          btn('Cancel', () => reject('Cancel inspection'), 'red'),
         ],
       },
       {
@@ -392,7 +399,16 @@ export function AcquisitionDetailPage() {
 
   if (stage === 'token_to_seller') {
     if (!a.agreedPrice) {
-      main.push({ title: 'Token to Seller', banners: [{ text: 'No agreed price found', tone: 'error' }], actions: [btn('← Back to Negotiation', () => void move('negotiation'))] });
+      main.push({
+        title: 'Token to Seller',
+        banners: [{ text: 'No agreed price found. Seller token cannot move back to Negotiation.', tone: 'error' }],
+        actions: [btn('Save agreed price', () => modal.open({
+          title: 'Agreed price',
+          fields: [{ key: 'price', label: 'Agreed price (₹)', type: 'number', required: true, default: String(a.builtgloryOffer || a.askingPrice || '') }],
+          submit: 'Save',
+          onSubmit: (v) => exec(() => updateAcquisition(a.id, { agreedPrice: Number(v.price) }), 'Agreed price saved'),
+        }), 'primary')],
+      });
     } else {
       const suggested = Math.round((a.agreedPrice * 0.05) / 1e4) * 1e4;
       const receiptRows: Array<[string, string]> = [
@@ -512,6 +528,15 @@ export function AcquisitionDetailPage() {
         ],
       },
       adv ? { ...checksSection('Step 2 · Document Review Checklist', ADV_CHECKS, advChecks, (nextState) => void saveDoc({ advocateChecklist: nextState })), subtitle: advDone + '/' + ADV_CHECKS.length + ' verified' } : null,
+      {
+        title: 'Legal verification checklist',
+        subtitle: 'Required before seller payout',
+        checks: LEGAL_GATES.map(([key, label]) => ({
+          label,
+          done: doc[key] === true,
+          onToggle: () => void saveDoc({ [key]: doc[key] !== true }),
+        })),
+      },
       adv
         ? {
             title: 'Step 3 · Advocate Findings',
@@ -547,7 +572,7 @@ export function AcquisitionDetailPage() {
         ? {
             title: '✅ Legal Verification Complete',
             fields: [{ label: 'Verified by', value: str(adv.name) }, { label: 'Bar Council', value: str(adv.bar) }, { label: 'Verification Date', value: date(legalVerifiedAt) }, { label: 'Certificate', value: str(cert.fileName) }],
-            actions: [btn('View Certificate', () => (str(cert.url) ? void window.open(str(cert.url), '_blank', 'noopener,noreferrer') : toast('No certificate file'))), btn('Revoke Verification', () => void saveDoc({ legalVerifiedAt: null }, 'Legal verification revoked'), 'red')],
+            actions: [btn('View Certificate', () => (str(cert.url) ? void window.open(str(cert.url), '_blank', 'noopener,noreferrer') : toast('No certificate file'))), btn('Revoke Verification', () => void saveDoc({ legalVerifiedAt: null, ownership_verified: false, encumbrance_clear: false, tax_clear: false, litigation_clear: false, approvals_verified: false, legalVerification: { advocateAssigned: false, verificationStatus: 'pending', certificateUploaded: false, certificateUrl: '' } }, 'Legal verification revoked'), 'red')],
           }
         : adv
           ? {
@@ -555,7 +580,17 @@ export function AcquisitionDetailPage() {
               actions: [
                 btn('✅ Mark Verification Complete', () => {
                   if (!str(cert.url)) return toast('Upload the verification certificate first');
-                  const doIt = () => saveDoc({ legalVerifiedAt: new Date().toISOString() }, '✅ Legal verification complete');
+                  if (LEGAL_GATES.some(([key]) => doc[key] !== true)) return toast('Complete the legal verification checklist first');
+                  const doIt = () => saveDoc({
+                    legalVerifiedAt: new Date().toISOString(),
+                    legalVerification: {
+                      advocate: str(adv?.name),
+                      advocateAssigned: true,
+                      verificationStatus: 'completed',
+                      certificateUrl: str(cert.url),
+                      certificateUploaded: true,
+                    },
+                  }, '✅ Legal verification complete');
                   if (issues.length) askConfirm({ title: 'Proceed despite issues?', message: issues.length + ' open legal issue(s).', confirmLabel: 'Proceed', onConfirm: doIt });
                   else void doIt();
                 }, 'green'),
@@ -565,7 +600,14 @@ export function AcquisitionDetailPage() {
       next(
         [
           btn('💰 Move to Seller Payout', () => {
-            if (!legalVerifiedAt) return toast('⚠️ Complete legal verification first');
+            const verification = asRaw(doc.legalVerification);
+            const legalReady = LEGAL_GATES.every(([key]) => doc[key] === true)
+              && verification.advocateAssigned === true
+              && !!str(verification.advocate)
+              && str(verification.verificationStatus) === 'completed'
+              && verification.certificateUploaded === true
+              && !!str(verification.certificateUrl);
+            if (!legalReady) return toast('Complete the legal checklist, assign an advocate, and upload the certificate first');
             if (legal.verified < legal.required) askConfirm({ title: 'Proceed anyway?', message: '⚠️ Some optional documents missing. Proceed anyway?', confirmLabel: 'Proceed', onConfirm: () => move('seller_payout') });
             else void move('seller_payout');
           }, 'green'),
@@ -650,9 +692,16 @@ export function AcquisitionDetailPage() {
                 if (f.val<boolean>('l.feat', false) && f.val<boolean>('l.up', false)) return;
                 void exec(async () => {
                   const { propertyId } = await convertAcquisitionToProperty(a.id);
-                  if (propertyId) await updateProperty(propertyId, { title: f.str('l.title', a.title), price: lp, isFeatured: f.val<boolean>('l.feat', false), isUpcoming: f.val<boolean>('l.up', false) });
+                  if (propertyId) await updateProperty(propertyId, { title: f.str('l.title', a.title), price: lp, description: f.str('l.title', a.title), isFeatured: f.val<boolean>('l.feat', false), isUpcoming: f.val<boolean>('l.up', false) });
                   await updateAcquisition(a.id, { documentation: { ...doc, workflow: { ...wfd, listedPropertyId: propertyId } } });
-                }, '✅ Listed on app').then(() => f.clear('l.'));
+                  if (!propertyId) return;
+                  try {
+                    await updatePropertyStatus(propertyId, { status: 'available' });
+                    toast('✅ Listed on app');
+                  } catch {
+                    toast('Draft created. Add a description, 6-digit pincode and a cover photo before it appears on the app.');
+                  }
+                }).then(() => f.clear('l.'));
               }, 'primary'),
             ],
           },
@@ -702,13 +751,15 @@ export function AcquisitionDetailPage() {
         title: 'What would you like to do?',
         stack: true,
         actions: [
-          btn('▶️ Resume Acquisition', () =>
-            modal.open({
-              title: 'Resume Acquisition',
-              fields: [{ key: 'to', label: 'Return to stage', type: 'select', options: FLOW.map((x) => ({ value: x.value, label: x.label })), required: true, default: prevStage }],
-              submit: 'Confirm',
-              onSubmit: (v) => move(String(v.to), { onHoldReason: '' }, '▶️ Acquisition resumed'),
-            }), 'green'),
+          btn('▶️ Resume Acquisition', () => {
+            if (!prevStage) return toast('This deal has no stage to resume to.');
+            askConfirm({
+              title: 'Resume acquisition?',
+              message: 'It will return to ' + acqStage(prevStage) + '. The checks for that stage still apply.',
+              confirmLabel: 'Resume',
+              onConfirm: () => move(prevStage, { onHoldReason: '' }, '▶️ Acquisition resumed'),
+            });
+          }, 'green'),
           btn('❌ Reject & Close', () => reject('❌ Reject & Close'), 'red'),
         ],
       },
@@ -776,7 +827,7 @@ export function AcquisitionDetailPage() {
           ],
           actions: a.propertyId ? [btn('View Property', () => navigate('/admin/properties/' + a.propertyId), 'link')] : a.sellRequestId ? [btn('View Sell Request', () => navigate('/admin/enquiries/sell/' + a.sellRequestId), 'link')] : [],
         },
-        ['acquired', 'rejected', 'on_hold'].includes(stage) ? null : { title: 'Actions', stack: true, actions: [btn('⏸️ Put On Hold', hold), btn('❌ Reject', () => reject(), 'red')] },
+        ['acquired', 'rejected', 'on_hold'].includes(stage) ? null : { title: 'Actions', stack: true, actions: [btn('⏸️ Put On Hold', hold), ['token_to_seller', 'documentation', 'seller_payout'].includes(stage) ? null : btn('❌ Reject', () => reject(), 'red')] },
         wf.activity(),
         wf.sent(),
       ]}

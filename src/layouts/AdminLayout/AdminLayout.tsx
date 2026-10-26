@@ -9,6 +9,7 @@ import { Skeleton } from '../../components/ui/Skeleton';
 import { useOnlineStatus } from '../../hooks/useDomUtils';
 import { useSession } from '../../hooks/useSession';
 import { useViewport } from '../../hooks/useViewport';
+import { adminIdleExpired, touchAdminActivity } from '../../lib/apiClient';
 import { chatSocket } from '../../lib/realtime';
 import { getOverview } from '../../services/overview';
 import { logoutAdmin } from '../../services/auth';
@@ -53,15 +54,40 @@ export function AdminLayout() {
     setMSearchOpen(false);
   }, [pathname]);
 
+  const token = useAuthStore((s) => s.session?.accessToken);
   const overviewAllowed = canAny(['sales.read', 'acquisitions.read', 'support.read', 'users.read', 'visits.read', 'audit.read']);
   const overview = useQuery({ queryKey: ['overview'], queryFn: ({ signal }) => getOverview(signal), enabled: overviewAllowed, refetchInterval: 60_000, retry: false });
   useEffect(() => {
+    touchAdminActivity();
+    const mark = () => touchAdminActivity();
+    window.addEventListener('pointerdown', mark);
+    window.addEventListener('keydown', mark);
+    const timer = window.setInterval(() => {
+      if (adminIdleExpired()) useAuthStore.getState().expire();
+    }, 30_000);
+    return () => {
+      window.removeEventListener('pointerdown', mark);
+      window.removeEventListener('keydown', mark);
+      window.clearInterval(timer);
+    };
+  }, []);
+  useEffect(() => {
     const live = chatSocket();
     if (!live) return undefined;
-    const onChange = () => { void qc.invalidateQueries(); };
+    const onChange = (payload: { resources?: string[] }) => {
+      const resources = Array.isArray(payload?.resources) ? payload.resources : [];
+      const keys = resources.flatMap((resource) => (
+        resource === 'visits' ? ['visits', 'visit']
+          : resource === 'enquiries' ? ['buy-enquiries', 'buy-enquiry', 'overview']
+            : resource === 'deals' ? ['sales-deals', 'sales-deal', 'overview']
+              : [resource]
+      ));
+      if (!keys.length) return;
+      keys.forEach((key) => { void qc.invalidateQueries({ queryKey: [key] }); });
+    };
     live.on('records:changed', onChange);
     return () => { live.off('records:changed', onChange); };
-  }, [qc, admin]);
+  }, [qc, token]);
   const badges = overview.data?.navBadges ?? {};
 
   const toggleSidebar = () => {

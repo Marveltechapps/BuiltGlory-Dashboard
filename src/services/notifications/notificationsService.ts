@@ -105,6 +105,6 @@ function mapPush(raw: Raw): PushRecord {
  * filter, so push records are selected client-side by `channel`.
  */
 export async function listPushHistory(signal?: AbortSignal): Promise<PushRecord[]> {
-  const res = await apiRequestEnvelope<Raw[]>('/v1/admin/notifications', { query: { limit: 100, sort: 'newest' }, signal });
+  const res = await apiRequestEnvelope<Raw[]>('/v1/admin/notifications', { query: { limit: 100, sort: 'newest', channel: 'push' }, signal });
   return arr(res.data).map((r) => asRaw(r)).filter((r) => str(r.channel) === 'push').map(mapPush);
 }

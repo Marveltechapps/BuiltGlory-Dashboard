@@ -12,12 +12,18 @@ import { useRefreshingMutation } from '../../../hooks/useRefreshingMutation';
 import { useSalesTeam } from '../../../hooks/useTeam';
 import { useWorkflowSections } from '../../../hooks/useWorkflowSections';
 import { date, isHttpsUrl, price, relativeLong, shortId, statusLabel, todayIso } from '../../../lib/format';
-import { convertEnquiryToDeal, getBuyEnquiry, updateBuyEnquiry } from '../../../services/enquiries';
+import { convertEnquiryToDeal, createAdminVisit, getBuyEnquiry, updateBuyEnquiry } from '../../../services/enquiries';
 import { createLog } from '../../../services/workflow';
 import { askConfirm, openCompose, toast } from '../../../store/uiStore';
 import { visitPrefLabel } from '../components/enquiryHelpers';
 
-const STATUSES = ['new', 'responded', 'visit_scheduled', 'negotiating', 'closed'];
+const BUY_NEXT: Record<string, string[]> = {
+  new: ['responded', 'visit_scheduled', 'closed'],
+  responded: ['visit_scheduled', 'negotiating', 'closed'],
+  visit_scheduled: ['negotiating', 'closed'],
+  negotiating: ['closed'],
+  closed: [],
+};
 
 export function BuyEnquiryDetailPage() {
   const { id = '' } = useParams();
@@ -45,12 +51,12 @@ export function BuyEnquiryDetailPage() {
   const entity = { type: 'buy_enquiry' as const, id: e.id };
   const setStatus = (s: string, msg?: string) => update.mutate({ status: s }, { onSuccess: () => toast(msg || '✅ Status updated') });
 
-  const schedule = () =>
+  const schedule = () => {
+    if (e.status === 'closed') return toast('Closed enquiries stay closed.');
     modal.open({
       title: 'Schedule Visit',
       subtitle: e.buyerName + ' · ' + e.propertyTitle,
       formCols: 2,
-      banners: [{ text: 'Visit bookings are created from the buyer app (POST /visits is customer-only). This records the agreed slot on the enquiry and moves it to Visit Scheduled.', tone: 'muted' }],
       fields: [
         { key: 'date', label: 'Visit date', type: 'date', required: true, min: todayIso() },
         { key: 'time', label: 'Visit time', type: 'select', options: SLOTS, required: true, default: '10:00 AM' },
@@ -61,25 +67,43 @@ export function BuyEnquiryDetailPage() {
       validate: (v) => ({ date: String(v.date) < todayIso() ? 'Date is in the past' : '', link: isHttpsUrl(String(v.link || '')) ? '' : 'URL must start with https://' }),
       submit: 'Confirm Visit',
       onSubmit: async (v) => {
+        if (e.status === 'closed') return toast('Closed enquiries stay closed.');
+        if (!e.buyerId || !e.propertyId) return toast('This enquiry needs a buyer and a property before a visit can be created.');
+        const visitType = String(v.type).toLowerCase() === 'virtual' ? 'virtual' : 'physical';
+        await createAdminVisit({
+          buyerId: e.buyerId,
+          propertyId: e.propertyId,
+          enquiryId: e.id,
+          visitDate: String(v.date),
+          visitTime: String(v.time),
+          visitType,
+          ...(v.link ? { meetingLink: String(v.link) } : {}),
+          ...(v.who ? { assignedAdmin: String(v.who) } : {}),
+        });
         const when = date(v.date + 'T12:00:00') + ', ' + v.time;
-        await updateBuyEnquiry(id, { status: 'visit_scheduled', ...(v.who ? { assignedTo: String(v.who) } : {}) });
-        await createLog('buy_enquiry', id, { channel: 'note', direction: 'internal', summary: 'Visit agreed for ' + when + ' (' + v.type + ')', body: v.link ? 'Meeting link: ' + v.link : null });
+        const statusPatch = e.status === 'new' || e.status === 'responded' ? { status: 'visit_scheduled' as const } : {};
+        if (statusPatch.status || v.who) await updateBuyEnquiry(id, { ...statusPatch, ...(v.who ? { assignedTo: String(v.who) } : {}) });
+        await createLog('buy_enquiry', id, { channel: 'note', direction: 'internal', summary: 'Visit created for ' + when + ' (' + v.type + ')', body: v.link ? 'Meeting link: ' + v.link : null });
         void q.refetch();
         void wf.logsQ.refetch();
         toast('📅 Visit scheduled for ' + date(v.date + 'T12:00:00'));
       },
     });
+  };
 
-  const negotiate = () =>
-    update.mutate(
-      { status: 'negotiating' },
-      {
-        onSuccess: () => {
-          toast('💬 Negotiation thread opened');
-          navigate('/admin/enquiries/chat');
-        },
-      },
-    );
+  const negotiate = () => {
+    if (e.status === 'closed') return toast('Closed enquiries stay closed.');
+    if (e.status === 'negotiating') {
+      toast('Negotiation is already open');
+      return navigate('/admin/enquiries/chat');
+    }
+    void (async () => {
+      if (e.status === 'new') await update.mutateAsync({ status: 'responded' });
+      await update.mutateAsync({ status: 'negotiating' });
+      toast('💬 Negotiation thread opened');
+      navigate('/admin/enquiries/chat');
+    })();
+  };
   const toSales = () => {
     if (e.dealId) return navigate('/admin/sales/' + e.dealId);
     convert.mutate(undefined, {
@@ -89,6 +113,7 @@ export function BuyEnquiryDetailPage() {
       },
     });
   };
+  const statusOptions = [e.status, ...(BUY_NEXT[e.status] || [])].filter((s, i, list) => list.indexOf(s) === i);
   const sendDetails = () =>
     openCompose({ channel: 'whatsapp', name: e.buyerName, to: e.phone, entity, body: 'Hi ' + first + ', here are the details for ' + e.propertyTitle + ' — ' + price(p?.price || e.propertyPrice) + ', ' + (p?.locality || e.propertyLocation || '') + '. Reply to book a visit. — BuiltGlory' });
   const cta =
@@ -144,7 +169,7 @@ export function BuyEnquiryDetailPage() {
         {
           title: 'Status',
           formCols: 1,
-          form: [f.inp('status', 'Enquiry status', { type: 'select', options: STATUSES.map((s) => ({ value: s, label: statusLabel(s) })), default: e.status })],
+          form: [f.inp('status', 'Enquiry status', { type: 'select', options: statusOptions.map((s) => ({ value: s, label: statusLabel(s) })), default: e.status })],
           actions: [btn('Update Status', () => { const s = f.str('status', e.status); if (s !== e.status) setStatus(s); }, 'primary', { loading: update.isPending })],
         },
         {
@@ -174,7 +199,7 @@ export function BuyEnquiryDetailPage() {
             btn('➡️ Move to Sales Pipeline', toSales, 'primary', { loading: convert.isPending }),
             e.status === 'new' ? btn('✅ Mark as Responded', () => setStatus('responded', '✅ Marked as responded'), 'green') : null,
             e.status !== 'closed'
-              ? btn('👎 Mark Not Interested', () => askConfirm({ title: 'Mark as not interested?', message: 'This will close the enquiry. You can change the status later if needed.', confirmLabel: 'Mark Not Interested', tone: 'destructive', onConfirm: async () => { await update.mutateAsync({ status: 'closed' }); toast('Enquiry closed'); } }), 'red')
+              ? btn('👎 Mark Not Interested', () => askConfirm({ title: 'Mark as not interested?', message: 'This closes the enquiry. Closed is final and cannot be reopened.', confirmLabel: 'Mark Not Interested', tone: 'destructive', onConfirm: async () => { await update.mutateAsync({ status: 'closed' }); toast('Enquiry closed'); } }), 'red')
               : null,
           ],
         },

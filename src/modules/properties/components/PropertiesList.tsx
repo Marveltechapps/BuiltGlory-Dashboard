@@ -376,7 +376,7 @@ export function PropertiesList({ tab }: { tab: ListTab }) {
                 <Icon name="pause" size={16} />Pause Listing
               </button>
             )}
-            {mp.status !== 'sold' && (
+            {(mp.status === 'available' || mp.status === 'reserved') && (
               <button
                 type="button"
                 role="menuitem"

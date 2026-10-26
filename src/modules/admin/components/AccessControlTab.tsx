@@ -87,13 +87,17 @@ export function AccessControlTab() {
       fields: [
         { key: 'name', label: 'Name', required: true },
         { key: 'phone', label: 'Phone', required: true },
-        { key: 'email', label: 'Email' },
+        { key: 'email', label: 'Email', required: true },
+        { key: 'pw', label: 'Password', type: 'password', required: true, hint: 'Min 8 characters. Share this with the member so they can sign in.' },
         { key: 'role', label: 'Role', type: 'select', options: SALES_ROLES.map(([value, label]) => ({ value, label })), default: 'sales_executive' },
         { key: 'areas', label: 'Assigned Areas (comma-separated)', placeholder: 'Whitefield, Marathahalli' },
       ],
-      validate: (v) => ({ email: !s(v.email).trim() || /^\S+@\S+\.\S+$/.test(s(v.email).trim()) ? '' : 'Enter a valid email' }),
+      validate: (v) => ({
+        email: /^\S+@\S+\.\S+$/.test(s(v.email).trim()) ? '' : 'Enter a valid email',
+        pw: s(v.pw).length < 8 ? 'Min 8 characters' : '',
+      }),
       submit: 'Add Member',
-      onSubmit: (v) => teamMut.mutateAsync(() => createSalesTeamMember({ name: s(v.name).trim(), phone: s(v.phone).trim(), email: s(v.email).trim(), role: s(v.role), assignedArea: areasOf(v.areas) })).then(() => toast('✅ Member added')),
+      onSubmit: (v) => teamMut.mutateAsync(() => createSalesTeamMember({ name: s(v.name).trim(), phone: s(v.phone).trim(), email: s(v.email).trim().toLowerCase(), password: s(v.pw), role: s(v.role), assignedArea: areasOf(v.areas) })).then(() => toast('✅ Member added')),
     });
 
   const viewActivity = async (a: AdminOperator) => {

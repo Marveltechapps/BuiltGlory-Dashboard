@@ -10,7 +10,7 @@ export const ENQ_STATUS: Record<string, Record<string, [string, string]>> = {
 
 export const ENQ_TABS: Record<string, string[]> = {
   buy: ['all', 'new', 'responded', 'visit_scheduled', 'negotiating', 'closed'],
-  sell: ['all', 'new', 'under_review', 'approved', 'changes_requested', 'rejected', 'paused', 'sold'],
+  sell: ['all', 'draft', 'new', 'under_review', 'accepted', 'active', 'negotiating', 'approved', 'changes_requested', 'rejected', 'paused', 'sold'],
   callbacks: ['all', 'pending', 'called', 'resolved', 'missed', 'rescheduled', 'overdue'],
   interior: ['all', 'new', 'contacted', 'quote_sent', 'accepted', 'negotiating', 'declined', 'completed'],
 };

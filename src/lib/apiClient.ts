@@ -77,6 +77,27 @@ async function parseBody(response: Response): Promise<unknown> {
 }
 
 let refreshing: Promise<boolean> | null = null;
+const IDLE_LIMIT_MS = 30 * 60 * 1000;
+const ACTIVITY_KEY = 'bg-admin-last-activity';
+
+/** Records dashboard activity so a silent token refresh cannot extend an idle session. */
+export function touchAdminActivity() {
+  try {
+    sessionStorage.setItem(ACTIVITY_KEY, String(Date.now()));
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+export function adminIdleExpired() {
+  try {
+    const raw = sessionStorage.getItem(ACTIVITY_KEY);
+    if (!raw) return false;
+    return Date.now() - Number(raw) > IDLE_LIMIT_MS;
+  } catch {
+    return false;
+  }
+}
 
 async function refreshSession(): Promise<boolean> {
   const session = useAuthStore.getState().session;
@@ -115,6 +136,10 @@ async function send(path: string, options: RequestOptions, retried: boolean): Pr
   const url = `/api/${path.replace(/^\//, '')}${buildQuery(options.query)}`;
   const response = await fetch(url, { method: options.method ?? 'GET', headers, body, signal: options.signal });
   if (response.status === 401 && token && !retried) {
+    if (adminIdleExpired()) {
+      useAuthStore.getState().expire();
+      return response;
+    }
     const ok = await refreshSession();
     if (ok) return send(path, options, true);
     useAuthStore.getState().expire();

@@ -118,8 +118,11 @@ export function AddProperty() {
     if (!title) e.title = 'Property title is required';
     // The create endpoint requires a positive price for every record, drafts included.
     if (!(Number(v('price')) > 0)) e.price = asDraft ? 'Price is required (the server needs a price even for drafts)' : 'Price is required to publish';
+    if (!asDraft && !v('description').trim()) e.description = 'Description is required to publish';
     if (!asDraft && !v('locality').trim()) e.locality = 'Locality is required';
     if (!asDraft && !v('city')) e.city = 'City is required';
+    if (!asDraft && !/^\d{6}$/.test(v('pincode'))) e.pincode = 'A 6-digit pincode is required to publish';
+    if (!asDraft && !v('photo1').trim()) e.photo1 = 'A cover photo URL is required to publish';
     if (type === 'plot' && !asDraft && !v('spec.plotArea').trim()) e['spec.plotArea'] = 'Plot area (sqft) is required for plots.';
     if (form.upcoming && !v('launch')) e.launch = 'Launch date is required for upcoming properties';
     if (v('pincode') && !/^\d{6}$/.test(v('pincode'))) e.pincode = 'Pincode must be 6 digits';

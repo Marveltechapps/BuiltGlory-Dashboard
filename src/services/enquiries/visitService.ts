@@ -90,6 +90,23 @@ export interface VisitStatusBody {
   note?: { text: string };
 }
 
+export interface AdminVisitBody {
+  buyerId: string;
+  propertyId: string;
+  enquiryId?: string;
+  visitDate: string;
+  visitTime: string;
+  visitType: 'physical' | 'virtual';
+  meetingLink?: string;
+  virtualPlatform?: VisitStatusBody['virtualPlatform'];
+  assignedAdmin?: string;
+}
+
+/** POST /api/v1/admin/visits */
+export async function createAdminVisit(body: AdminVisitBody) {
+  return mapVisit(asRaw(await apiRequest<Raw>('/v1/admin/visits', { method: 'POST', body })));
+}
+
 /** PATCH /api/v1/admin/visits/:visitId/status */
 export async function updateVisitStatus(id: string, body: VisitStatusBody) {
   return mapVisit(asRaw(await apiRequest<Raw>(`/v1/admin/visits/${id}/status`, { method: 'PATCH', body })));

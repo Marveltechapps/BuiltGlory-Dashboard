@@ -36,6 +36,9 @@ export interface AdminOverview {
     tokenPaidDeals?: number;
     closedDeals?: number;
     revenue?: number;
+    totalProperties?: number;
+    totalEnquiries?: number;
+    stagePaymentDeals?: number;
     overdueCallbacks?: number;
     openSupportTickets?: number;
     pendingKycUsers?: number;
@@ -53,6 +56,7 @@ export interface AdminOverview {
   };
   recentEnquiries?: Array<{ id: string; referenceId?: string; buyer: string; property: string; type: string; date: string; status: string; viewPath: string }>;
   pendingApprovals?: Array<{ id: string; referenceId?: string; seller: string; title: string; type: string; submitted: string; status?: string; viewPath: string }>;
+  slaLimits?: { enquiry?: number; stagePayment?: number; interior?: number };
   slaQueues?: {
     enquiries?: OverviewSlaItem[];
     stagePayments?: OverviewSlaItem[];

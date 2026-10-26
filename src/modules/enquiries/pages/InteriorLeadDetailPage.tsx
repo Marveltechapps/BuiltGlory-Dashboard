@@ -80,26 +80,30 @@ export function InteriorLeadDetailPage() {
   };
 
   const sendQuote = () => {
+    if (!['new', 'contacted', 'quote_sent', 'negotiating'].includes(l.status)) return toast('A quote can be sent from New, Contacted, Quote Sent, or Negotiating.');
     if (!f.need({ 'q.pkg': 'Package name is required', 'q.price': 'Total price is required' })) return;
     const amount = Number(f.str('q.price'));
     if (!(amount > 0)) return void f.fail('q.price', 'Enter a valid price');
-    const go = () =>
-      update.mutate(
-        {
-          status: 'quote_sent',
-          ...(f.str('q.designer') ? { assignedDesigner: f.str('q.designer') } : {}),
-          quote: {
-            amount,
-            packageName: f.str('q.pkg'),
-            timeline: f.str('q.time') || '6 weeks',
-            inclusions: f.str('q.inc').split(/[\n,]/).map((s) => s.trim()).filter(Boolean),
-            validUntil: new Date(Date.now() + 72 * H).toISOString(),
-          },
+    const inclusions = f.str('q.inc').split(/[\n,]/).map((s) => s.trim()).filter(Boolean);
+    if (!inclusions.length) return void f.fail('q.inc', 'Add at least one inclusion');
+    const go = async () => {
+      if (l.status === 'new') await updateInteriorLead(id, { status: 'contacted' });
+      await update.mutateAsync({
+        status: 'quote_sent',
+        ...(f.str('q.designer') ? { assignedDesigner: f.str('q.designer') } : {}),
+        quote: {
+          amount,
+          packageName: f.str('q.pkg'),
+          timeline: f.str('q.time') || '6 weeks',
+          inclusions,
+          validUntil: new Date(Date.now() + 72 * H).toISOString(),
         },
-        { onSuccess: () => { f.clear('q.'); toast('📤 Quote sent — buyer notified'); } },
-      );
-    if (!f.str('q.designer') && !l.assignedDesigner) askConfirm({ title: '⚠️ No designer assigned', message: 'Assign a designer before sending, or send anyway.', confirmLabel: 'Send Anyway', onConfirm: go });
-    else go();
+      });
+      f.clear('q.');
+      toast('📤 Quote sent — buyer notified');
+    };
+    if (!f.str('q.designer') && !l.assignedDesigner) askConfirm({ title: '⚠️ No designer assigned', message: 'Assign a designer before sending, or send anyway.', confirmLabel: 'Send Anyway', onConfirm: () => { void go(); } });
+    else void go();
   };
 
   return (
@@ -140,7 +144,7 @@ export function InteriorLeadDetailPage() {
             f.inp('q.inc', 'Inclusions', { type: 'textarea', placeholder: 'Modular kitchen, wardrobes, false ceiling…' }),
           ],
           banners: [{ text: 'Quote validity: 72 hours · 📱 Buyer will receive: "Your interior quote is ready"', tone: 'muted' }],
-          actions: [btn(quote ? 'Send Revised Quote' : 'Send Quote & Notify Buyer', sendQuote, 'primary', { loading: update.isPending })],
+          actions: ['new', 'contacted', 'quote_sent', 'negotiating'].includes(l.status) ? [btn(quote ? 'Send Revised Quote' : 'Send Quote & Notify Buyer', sendQuote, 'primary', { loading: update.isPending })] : [],
         },
         {
           title: 'Quote History',
@@ -197,7 +201,7 @@ export function InteriorLeadDetailPage() {
             btn('📤 Send Quote', () => f.set('q.pkg', f.str('q.pkg') || 'Premium Interior Package')),
             btn('💬 WhatsApp', () => { reachOut('whatsapp', { name: l.buyerName, to: l.phone, property: l.propertyTitle, entity: { type: 'interior_lead', id: l.id } }); if (l.status === 'new') setSt('contacted', 'Marked as contacted'); }),
             btn('📧 Email', () => { reachOut('email', { name: l.buyerName, to: l.email, property: l.propertyTitle, entity: { type: 'interior_lead', id: l.id } }); if (l.status === 'new' && l.email) setSt('contacted', 'Marked as contacted'); }),
-            l.status !== 'declined' ? btn('❌ Mark Declined', () => askConfirm({ title: 'Mark as declined?', confirmLabel: 'Mark Declined', tone: 'destructive', onConfirm: async () => { await update.mutateAsync({ status: 'declined' }); toast('Lead marked declined'); } }), 'red') : null,
+            ['new', 'contacted', 'quote_sent', 'negotiating'].includes(l.status) ? btn('❌ Mark Declined', () => askConfirm({ title: 'Mark as declined?', confirmLabel: 'Mark Declined', tone: 'destructive', onConfirm: async () => { await update.mutateAsync({ status: 'declined' }); toast('Lead marked declined'); } }), 'red') : null,
           ],
         },
         wf.activity('Activity Timeline'),

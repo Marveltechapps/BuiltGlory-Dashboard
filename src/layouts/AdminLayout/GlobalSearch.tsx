@@ -10,6 +10,15 @@ import styles from './AdminLayout.module.css';
 
 const ORDER: Array<[SearchResult['type'], string]> = [['property', 'Properties'], ['user', 'Users'], ['enquiry', 'Enquiries'], ['acquisition', 'Acquisitions'], ['deal', 'Sales Deals']];
 
+/** First row the dropdown actually shows (results are grouped, so results[0] can be a later group). */
+function firstShown(results: SearchResult[]) {
+  for (const [type] of ORDER) {
+    const hit = results.find((item) => item.type === type);
+    if (hit) return hit;
+  }
+  return undefined;
+}
+
 function useSearch(q: string) {
   const dq = useDebounced(q.trim(), 250);
   const enabled = dq.length >= 2;
@@ -80,7 +89,7 @@ export function GlobalSearch() {
           onFocus={() => q.length >= 2 && setOpen(true)}
           onKeyDown={(e) => {
             if (e.key === 'Escape') { setOpen(false); setQ(''); }
-            if (e.key === 'Enter' && results[0]) select(results[0]);
+            if (e.key === 'Enter') { const hit = firstShown(results); if (hit) select(hit); }
           }}
         />
         {open && q.length >= 2 && (
@@ -125,7 +134,7 @@ export function MobileSearch({ open, setOpen }: { open: boolean; setOpen: (v: bo
               onChange={(e) => setQ(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Escape') { setOpen(false); setQ(''); }
-                if (e.key === 'Enter' && results[0]) select(results[0]);
+                if (e.key === 'Enter') { const hit = firstShown(results); if (hit) select(hit); }
               }}
             />
           </div>

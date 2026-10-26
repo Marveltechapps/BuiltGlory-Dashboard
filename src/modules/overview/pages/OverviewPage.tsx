@@ -62,7 +62,7 @@ export function OverviewPage() {
                 <span className={styles.quickLbl}>New enquiries</span>
               </button>
               <button type="button" className={styles.quickBtn} onClick={() => navigate('/admin/sales/stagepayment')}>
-                <span className={styles.quickVal}>{kpis.tokenPaidDeals ?? q.stagePayments.length}</span>
+                <span className={styles.quickVal}>{kpis.stagePaymentDeals ?? q.stagePayments.length}</span>
                 <span className={styles.quickLbl}>Stage payments</span>
               </button>
               <button type="button" className={styles.quickBtn} onClick={() => navigate('/admin/enquiries/interior')}>
@@ -75,10 +75,10 @@ export function OverviewPage() {
       </div>
 
       <div className={styles.grid} style={{ alignItems: 'stretch', gridTemplateColumns: L.kpiCols }}>
-        <KpiCard loading={loading} label="Total Properties" value={String(kpis.activeProperties ?? 0)} subtitle={(kpis.featuredProperties ?? 0) + ' featured · ' + (kpis.upcomingProperties ?? 0) + ' upcoming'} icon="building-2" gradient="linear-gradient(to bottom right, #3b82f6, #2563eb)" to="/admin/properties/all" valueSize={L.kpiSize} />
-        <KpiCard loading={loading} label="Total Enquiries" value={String(kpis.newEnquiries ?? q.enquiries.length)} subtitle={(kpis.overdueCallbacks ?? 0) + ' overdue callbacks · ' + (kpis.openSupportTickets ?? 0) + ' open tickets'} icon="message-square" gradient="linear-gradient(to bottom right, #22c55e, #16a34a)" to="/admin/enquiries/buy" valueSize={L.kpiSize} />
+        <KpiCard loading={loading} label="Active Properties" value={String(kpis.activeProperties ?? 0)} subtitle={(kpis.totalProperties ?? kpis.activeProperties ?? 0) + ' total · ' + (kpis.featuredProperties ?? 0) + ' featured · ' + (kpis.upcomingProperties ?? 0) + ' upcoming'} icon="building-2" gradient="linear-gradient(to bottom right, #3b82f6, #2563eb)" to="/admin/properties/all" valueSize={L.kpiSize} />
+        <KpiCard loading={loading} label="New Enquiries" value={String(kpis.newEnquiries ?? q.enquiries.length)} subtitle={(kpis.totalEnquiries ?? 0) + ' total · ' + (kpis.overdueCallbacks ?? 0) + ' overdue callbacks · ' + (kpis.openSupportTickets ?? 0) + ' open tickets'} icon="message-square" gradient="linear-gradient(to bottom right, #22c55e, #16a34a)" to="/admin/enquiries/buy" valueSize={L.kpiSize} />
         <KpiCard loading={loading} label="Active Deals" value={String(activeDeals)} subtitle={pc(['negotiation']) + ' in negotiation · ' + (kpis.closedDeals ?? 0) + ' closed'} icon="handshake" gradient="linear-gradient(to bottom right, #f97316, #ea580c)" to="/admin/sales/all" valueSize={L.kpiSize} />
-        <KpiCard loading={loading} label="Revenue This Month" value={price(kpis.revenue ?? 0)} subtitle="Backend reported revenue" icon="trending-up" gradient="linear-gradient(to bottom right, #a855f7, #9333ea)" to="/admin/reports/revenue" valueSize={L.kpiSize} />
+        <KpiCard loading={loading} label="Revenue This Month" value={price(kpis.revenue ?? 0)} subtitle="Paid revenue since the start of this month (IST)" icon="trending-up" gradient="linear-gradient(to bottom right, #a855f7, #9333ea)" to="/admin/reports/revenue" valueSize={L.kpiSize} />
       </div>
 
       <section className={styles.section}>
@@ -137,9 +137,9 @@ export function OverviewPage() {
           <p className={styles.secSub}>Response time monitoring</p>
         </div>
         <div className={styles.grid} style={{ gridTemplateColumns: L.slaCols }}>
-          <SlaCard loading={loading} title="Interior Inquiries" subtitle="24hr response SLA" icon="clock" iconColor="#f97316" list={q.interiorLeads} viewAllHref="/admin/enquiries/interior" viewAllLabel="View All Interior Leads" call />
-          <SlaCard loading={loading} title="Stage Payment Requests" subtitle="4hr response SLA" icon="credit-card" iconColor="#3b82f6" list={q.stagePayments} viewAllHref="/admin/sales/stagepayment" viewAllLabel="View All Stage Payments" />
-          <SlaCard loading={loading} title="Enquiry Response SLA" subtitle="2hr response SLA" icon="message-square" iconColor="#22c55e" list={q.enquiries} viewAllHref="/admin/enquiries/buy" viewAllLabel="View Buy Enquiries" />
+          <SlaCard loading={loading} title="Interior Inquiries" subtitle={(ov?.slaLimits?.interior ?? 24) + 'hr response SLA'} icon="clock" iconColor="#f97316" list={q.interiorLeads} viewAllHref="/admin/enquiries/interior" viewAllLabel="View All Interior Leads" call />
+          <SlaCard loading={loading} title="Stage Payment Requests" subtitle={(ov?.slaLimits?.stagePayment ?? 4) + 'hr response SLA'} icon="credit-card" iconColor="#3b82f6" list={q.stagePayments} viewAllHref="/admin/sales/stagepayment" viewAllLabel="View All Stage Payments" />
+          <SlaCard loading={loading} title="Enquiry Response SLA" subtitle={(ov?.slaLimits?.enquiry ?? 2) + 'hr response SLA'} icon="message-square" iconColor="#22c55e" list={q.enquiries} viewAllHref="/admin/enquiries/buy" viewAllLabel="View Buy Enquiries" />
         </div>
       </section>
     </div>

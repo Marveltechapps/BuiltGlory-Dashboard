@@ -17,7 +17,7 @@ export async function fetchAllPages<T>(
   map: (raw: Raw) => T,
   query: RequestOptions['query'] = {},
   signal?: AbortSignal,
-  maxPages = 10,
+  maxPages = 50,
 ): Promise<ListResult<T>> {
   const items: T[] = [];
   let page = 1;

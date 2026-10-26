@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAuthStore } from '../store/authStore';
 import { claimLock, getLock, releaseLock } from '../services/workflow';
 import type { PageBanner } from '../types/detail';
 import type { EditLock, EntityType } from '../types/workflow';
@@ -27,8 +28,24 @@ export function useEditLock(type: EntityType, id: string): PageBanner | null {
         /* lock service unavailable — no banner */
       }
     })();
+    const renew = window.setInterval(() => {
+      if (mine) void claimLock(type, id).catch(() => undefined);
+    }, 10 * 60 * 1000);
+    const releaseOnClose = () => {
+      if (!mine) return;
+      const token = useAuthStore.getState().session?.accessToken;
+      if (!token) return;
+      void fetch(`/api/v1/admin/workflow/${type}/${id}/lock`, {
+        method: 'DELETE',
+        headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+        keepalive: true,
+      });
+    };
+    window.addEventListener('pagehide', releaseOnClose);
     return () => {
       alive = false;
+      window.clearInterval(renew);
+      window.removeEventListener('pagehide', releaseOnClose);
       if (mine) void releaseLock(type, id).catch(() => undefined);
     };
   }, [type, id]);

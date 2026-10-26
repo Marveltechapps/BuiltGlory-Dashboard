@@ -11,7 +11,6 @@ import { useSalesTeam } from '../../../hooks/useTeam';
 import { useWorkflowSections } from '../../../hooks/useWorkflowSections';
 import { badge, price, relativeLong, shortId, statusLabel, todayIso, typeLabel } from '../../../lib/format';
 import { reachOut } from '../../../lib/contact';
-import { updateAcquisitionStage } from '../../../services/acquisitions';
 import { assignSellRequest, createAcquisitionFromSell, getSellRequest, reviewSellRequest, type SellReviewBody } from '../../../services/enquiries';
 import { findProperties } from '../../../services/properties';
 import { sendPush } from '../../../services/workflow';
@@ -94,7 +93,7 @@ export function SellRequestDetailPage() {
         { label: 'Price', value: price(r.askingPrice) },
         { label: 'Description', value: r.description },
       ],
-      extraActions: [{ label: '📝 Request Changes (WhatsApp)', onClick: () => requestChanges('whatsapp'), variant: 'primary' }],
+      extraActions: r.status === 'under_review' || r.status === 'accepted' ? [{ label: '📝 Request Changes (WhatsApp)', onClick: () => requestChanges('whatsapp'), variant: 'primary' as const }] : [],
     });
   const markSold = () =>
     modal.open({
@@ -109,17 +108,7 @@ export function SellRequestDetailPage() {
       onSubmit: async (v) => {
         await review.mutateAsync({ decision: 'sold', salePrice: Number(v.price), saleDate: String(v.date), saleBuyerName: String(v.buyer || '') || undefined });
         toast('✅ Marked as sold');
-        if (r.acquisitionId) {
-          askConfirm({
-            title: '🔗 Related Acquisition Found',
-            message: 'Update acquisition to "Acquired" stage?',
-            confirmLabel: 'Yes, update now',
-            onConfirm: async () => {
-              await updateAcquisitionStage(r.acquisitionId!, 'acquired', { finalPurchasePrice: Number(v.price) });
-              toast('🏠 Acquisition updated');
-            },
-          });
-        }
+        if (r.acquisitionId) toast('Finish the related acquisition on its own page. Sold listings cannot jump it to Acquired.');
       },
     });
   const pause = () =>
@@ -257,9 +246,9 @@ export function SellRequestDetailPage() {
           stack: true,
           actions: [
             r.status === 'rejected' || r.status === 'sold' ? null : btn(r.acquisitionId ? '🏗 View Acquisition' : '✅ Accept for Acquisition', acceptFlow, 'green', { loading: accept.isPending }),
-            r.status === 'rejected' ? null : btn('❌ Reject Listing', reject, 'red'),
-            btn('📝 Request Changes (WhatsApp)', () => requestChanges('whatsapp')),
-            btn('📝 Request Changes (Email)', () => requestChanges('email'), 'outline', { disabled: !r.email }),
+            r.status === 'under_review' || r.status === 'accepted' ? btn('❌ Reject Listing', reject, 'red') : null,
+            r.status === 'under_review' || r.status === 'accepted' ? btn('📝 Request Changes (WhatsApp)', () => requestChanges('whatsapp')) : null,
+            r.status === 'under_review' || r.status === 'accepted' ? btn('📝 Request Changes (Email)', () => requestChanges('email'), 'outline', { disabled: !r.email }) : null,
             r.status === 'new' ? btn('🔍 Mark Under Review', () => void setStatus('under_review', '🔍 Marked under review')) : null,
           ],
         },
@@ -267,7 +256,11 @@ export function SellRequestDetailPage() {
           title: 'Quick Actions',
           tag: 'SL-15, SL-17, SL-18',
           stack: true,
-          actions: [btn('✏️ Edit Listing Details', edit), r.status === 'paused' ? btn('▶ Resume Listing', resume) : btn('⏸ Pause Listing', pause), r.status === 'sold' ? null : btn('✅ Mark as Sold', markSold)],
+          actions: [
+            btn('✏️ Edit Listing Details', edit),
+            r.status === 'paused' ? btn('▶ Resume Listing', resume) : r.status === 'sold' ? null : btn('⏸ Pause Listing', pause),
+            ['accepted', 'approved', 'active', 'negotiating', 'paused'].includes(r.status) ? btn('✅ Mark as Sold', markSold) : null,
+          ],
         },
         wf.activity(),
         wf.sent(),

@@ -34,7 +34,19 @@ const FLOW = [
   { value: 'token_payment', label: 'Token Payment' }, { value: 'payment', label: 'Payment' }, { value: 'interior_design', label: 'Interior Design' },
   { value: 'documentation', label: 'Documentation' }, { value: 'closed', label: 'Closed' },
 ];
-const MOVE_TO = SALES_STAGES.filter(([v]) => !['closed', 'lost', 're_engagement'].includes(v));
+const STAGE_NEXT: Record<string, string[]> = {
+  active_leads: ['site_visits'],
+  site_visits: ['negotiation'],
+  negotiation: ['token_payment'],
+  token_payment: ['full_payment', 'stage_payment'],
+  full_payment: ['documentation'],
+  stage_payment: ['interior_design', 'documentation'],
+  interior_design: ['documentation'],
+  documentation: ['closed'],
+  lost: ['re_engagement'],
+  re_engagement: ['active_leads'],
+};
+const LOST_FROM = new Set(['active_leads', 'site_visits', 'negotiation']);
 const TAB: Record<string, string> = { active_leads: 'leads', site_visits: 'visits', negotiation: 'negotiation', token_payment: 'token', full_payment: 'fullpayment', stage_payment: 'stagepayment', interior_design: 'interior', documentation: 'documentation', closed: 'closed', lost: 'lost', re_engagement: 'reengagement' };
 const PRE = ['Confirm visit time with buyer', 'Share location / meeting link', 'Keys / access arranged', 'Brochure & price sheet ready'];
 const HANDOVER = ['Keys handed over', 'Meter readings recorded', 'Society NOC shared', 'Possession letter signed'];
@@ -240,7 +252,14 @@ export function SalesDealDetailPage() {
     const done = visit && visit.status === 'completed';
     const preState = asRaw(wfd.preVisit);
     const preDone = checksDone(PRE, preState);
-    const setV = (s: 'completed' | 'missed' | 'cancelled', extra: Raw = {}) => exec(() => updateVisitStatus(visit!.id, { status: s, ...extra }), 'Visit marked ' + s).then(() => visitsQ.refetch());
+    const setV = (s: 'completed' | 'missed' | 'cancelled', extra: Raw = {}) => {
+      if (s === 'completed') {
+        const saved = visit?.feedback;
+        if (!saved?.buyerInterest || !saved.notes || !saved.nextAction) return toast('Add feedback before marking this visit completed.');
+        extra = { ...extra, feedback: { buyerInterest: saved.buyerInterest, notes: saved.notes, nextAction: saved.nextAction } };
+      }
+      return exec(() => updateVisitStatus(visit!.id, { status: s, ...extra }), 'Visit marked ' + s).then(() => visitsQ.refetch());
+    };
     const planned = wfd.plannedVisit ? asRaw(wfd.plannedVisit) : null;
     main.push(
       visit
@@ -391,7 +410,16 @@ export function SalesDealDetailPage() {
 
   if (stage === 'token_payment') {
     if (!agreed) {
-      main.push({ title: 'Deal Confirmed', banners: [{ text: 'No agreed price set', tone: 'error' }], actions: [btn('← Back to Negotiation', () => void move('negotiation'))] });
+      main.push({
+        title: 'Deal Confirmed',
+        banners: [{ text: 'No agreed price set. Token payment cannot move back to Negotiation.', tone: 'error' }],
+        actions: [btn('Save agreed price', () => modal.open({
+          title: 'Agreed price',
+          fields: [{ key: 'price', label: 'Agreed price (₹)', type: 'number', required: true, default: String(d.offeredPrice || d.listedPrice || '') }],
+          submit: 'Save',
+          onSubmit: (v) => exec(() => updateDealOffer(d.id, { agreedPrice: Number(v.price) }), 'Agreed price saved'),
+        }), 'primary')],
+      });
     } else {
       const suggested = Math.round((agreed * 0.05) / 1e4) * 1e4;
       const subs = (paymentsQ.data ?? []).filter((x) => x.type === 'token');
@@ -540,7 +568,7 @@ export function SalesDealDetailPage() {
               btn('Record Full Payment', () => {
                 const pay = payValid(f, 'f.', today, { amount: Math.max(0, bal) }, { proof: true });
                 if (!pay) return;
-                void plan({ paymentType: 'full', fullPayment: { ...fp, charges, payment: pay }, totalPaid: totalPaid + pay.amount }, '✅ Full payment recorded').then(() => f.clear('f.'));
+                void plan({ paymentType: 'full', fullPayment: { ...fp, charges, payment: pay } }, '✅ Full payment recorded').then(() => f.clear('f.'));
               }, 'primary'),
             ],
           },
@@ -615,7 +643,7 @@ export function SalesDealDetailPage() {
                   s === 'proof_pending'
                     ? [
                         m.proofUrl ? { label: 'View proof', onClick: () => void window.open(m.proofUrl, '_blank', 'noopener,noreferrer') } : null,
-                        { label: 'Verify now ⚠️', variant: 'green', onClick: () => void setMs(i, { status: 'paid', paidAt: new Date().toISOString() }, {}, 'Milestone Verified! ✅').then(() => plan({ totalPaid: totalPaid + m.amount })) },
+                        { label: 'Verify now ⚠️', variant: 'green', onClick: () => void setMs(i, { status: 'paid', paidAt: new Date().toISOString() }, {}, 'Milestone Verified! ✅') },
                         { label: 'Reject proof', variant: 'red', onClick: () => askConfirm({ title: 'Reject proof?', message: '📱 Buyer will receive rejection notice', input: { label: 'Rejection reason (required)', required: true }, confirmLabel: 'Reject & Notify Buyer', tone: 'destructive', onConfirm: ({ value }) => setMs(i, { status: 'pending', proofRejectedReason: value, proofSubmittedAt: null }, {}, 'Proof Needs Resubmission') }) },
                       ]
                     : s === 'overdue'
@@ -638,7 +666,7 @@ export function SalesDealDetailPage() {
                 const pay = payValid(f, 'spp.', today, {}, { proof: true });
                 if (!pay) return;
                 const i = ms.findIndex((m) => m.id === f.str('sp.ms'));
-                void setMs(i, { status: 'paid', paidAt: new Date().toISOString(), payment: pay }, {}, '✅ Stage payment recorded').then(() => plan({ totalPaid: totalPaid + pay.amount })).then(() => { f.clear('sp'); });
+                void setMs(i, { status: 'paid', paidAt: new Date().toISOString(), payment: pay }, {}, '✅ Stage payment recorded').then(() => { f.clear('sp'); });
               }, 'primary'),
             ],
           }
@@ -944,7 +972,7 @@ export function SalesDealDetailPage() {
         })),
         empty: recsQ.isPending ? 'Loading recommendations…' : alts.length ? '' : 'No recommended properties found',
       },
-      next([btn('Move Back to Active Leads', () => void move('active_leads'), 'green'), btn('❌ Close Re-engagement', () => askConfirm({ title: 'Close re-engagement and mark deal as lost?', confirmLabel: 'Close', tone: 'destructive', onConfirm: () => exec(() => markDealLost(d.id, { lostReason: d.lostReason || 'Re-engagement closed' }), 'Deal marked as lost') }), 'red')], rePlan ? [] : [{ text: 'Optional: save a re-engagement plan before moving the buyer back.', tone: 'muted' }]),
+      next([btn('Move Back to Active Leads', () => void move('active_leads'), 'green')], [{ text: 'Lost is only available from Active Leads, Site Visits, or Negotiation. Move this buyer back before closing them as lost.', tone: 'muted' }]),
     );
   }
 
@@ -1013,10 +1041,15 @@ export function SalesDealDetailPage() {
               actions: [
                 btn('📋 Move Stage…', () => {
                   const askToken = stage === 'token_payment' && !d.tokenPaid;
+                  const nextStages = (STAGE_NEXT[stage] || []).flatMap((value) => {
+                    const found = SALES_STAGES.find(([id]) => id === value);
+                    return found ? [found] : [];
+                  });
+                  if (!nextStages.length) return toast('This stage has no further moves.');
                   modal.open({
                     title: 'Move Stage',
                     banners: askToken ? [{ text: 'Full Payment and Stage Payment need a token payment recorded on this deal.', tone: 'info' }] : [],
-                    fields: [{ key: 's', label: 'Stage', type: 'select', options: MOVE_TO.map(([value, l]) => ({ value, label: l })), required: true }, ...(askToken ? tokenFields() : [])],
+                    fields: [{ key: 's', label: 'Stage', type: 'select', options: nextStages.map(([value, l]) => ({ value, label: l })), required: true }, ...(askToken ? tokenFields() : [])],
                     validate: (v) => (askToken && ['full_payment', 'stage_payment'].includes(String(v.s)) ? tokenErrors(v) : {}),
                     submit: 'Move',
                     onSubmit: async (v) => {
@@ -1026,7 +1059,7 @@ export function SalesDealDetailPage() {
                     },
                   });
                 }),
-                btn('❌ Mark as Lost', () => lose(), 'red'),
+                LOST_FROM.has(stage) ? btn('❌ Mark as Lost', () => lose(), 'red') : null,
               ],
             },
         wf.activity(),

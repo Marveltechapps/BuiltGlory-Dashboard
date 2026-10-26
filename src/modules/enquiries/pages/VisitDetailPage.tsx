@@ -57,7 +57,10 @@ export function VisitDetailPage() {
   const entity = { type: 'visit' as const, id: v.id };
   const assigned = nameOf(v.assignedTo, v.assignedName) || v.assignedName;
   const set = (status: VisitStatusBody['status'], msg: string, extra: Partial<VisitStatusBody> = {}) => patch.mutate({ status, ...extra }, { onSuccess: () => toast(msg) });
-  const complete = () => (v.feedback ? set('completed', '✔️ Visit marked as completed') : toast('Add feedback before closing this visit.'));
+  const complete = () => {
+    if (!v.feedback?.buyerInterest || !v.feedback.notes || !v.feedback.nextAction) return toast('Add feedback before closing this visit.');
+    set('completed', '✔️ Visit marked as completed', { feedback: { buyerInterest: v.feedback.buyerInterest, notes: v.feedback.notes, nextAction: v.feedback.nextAction } });
+  };
   const confirm = () => {
     if (v.status === 'confirmed') return toast('Already confirmed');
     if (virtual && !hasLink) return toast('Add a meeting link before confirming this visit');

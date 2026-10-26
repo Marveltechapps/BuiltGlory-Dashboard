@@ -56,6 +56,11 @@ export function VisitsTab() {
 
   const setStatus = (v: Visit, status: VisitStatusBody['status'], msg: string) => () => {
     if (status === 'confirmed' && v.visitType === 'virtual' && !v.meetingLink) return toast('Add a meeting link before confirming this visit');
+    if (status === 'completed') {
+      const saved = v.feedback;
+      if (!saved?.buyerInterest || !saved.notes || !saved.nextAction) return toast('Add feedback on the visit before marking it completed.');
+      return statusM.mutate({ id: v.id, body: { status, feedback: { buyerInterest: saved.buyerInterest, notes: saved.notes, nextAction: saved.nextAction } } }, { onSuccess: () => toast(msg) });
+    }
     statusM.mutate({ id: v.id, body: { status } }, { onSuccess: () => toast(msg) });
   };
   const go = (v: Visit) => {

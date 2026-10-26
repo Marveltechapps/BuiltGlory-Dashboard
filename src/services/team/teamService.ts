@@ -22,7 +22,7 @@ export async function listSalesTeam(signal?: AbortSignal): Promise<TeamMember[]>
 }
 
 /** POST /api/v1/admin/sales-team */
-export async function createSalesTeamMember(body: { name: string; phone: string; email: string; role: string; assignedArea: string[] }) {
+export async function createSalesTeamMember(body: { name: string; phone: string; email: string; password: string; role: string; assignedArea: string[] }) {
   return mapTeamMember(asRaw(await apiRequest<Raw>('/v1/admin/sales-team', { method: 'POST', body })));
 }
 
