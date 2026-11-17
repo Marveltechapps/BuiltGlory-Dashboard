@@ -56,7 +56,7 @@ export function PropertyDetailPage() {
   const lock = useEditLock('property', id);
 
   const state = detailStateOf(q);
-  if (state !== 'ok' || !p) return <RecordDetailView state={state} isPage onRetry={() => void q.refetch()} backPath="/admin/properties/all" nfTitle="Property not found" />;
+  if (state !== 'ok' || !p) return <RecordDetailView state={state} onRetry={() => void q.refetch()} backPath="/admin/properties/all" nfTitle="Property not found" />;
 
   const today = todayIso();
   const ds = displayStatus(p);
@@ -200,7 +200,6 @@ export function PropertyDetailPage() {
   return (
     <RecordDetailView
       state="ok"
-      isPage
       backPath="/admin/properties/all"
       crumbs={[{ label: 'Properties', path: '/admin/properties/all' }, { label: p.title }]}
       title={p.title}

@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
-import { Navigate, Outlet, useLocation, useSearchParams } from 'react-router-dom';
+import { Navigate, Outlet, ScrollRestoration, useLocation, useSearchParams } from 'react-router-dom';
 import { DETAIL_ROUTES, findTab, OVERVIEW } from '../../constants/nav';
 import { firstAllowedPath, isPathAllowed } from '../../constants/permissions';
 import { clearIntentionalSignOut, isIntentionalSignOut } from '../../lib/signOutIntent';
@@ -10,10 +10,15 @@ import { Toaster } from '../../components/ui/Toaster';
 
 const SAFE_REDIRECT = /^\/admin(?:\/|$|\?)/;
 
-/** Root element: global dialogs + toasts that every route shares. */
+/**
+ * Root element: global dialogs + toasts that every route shares.
+ * ScrollRestoration starts each new screen at the top and restores the previous offset on Back/Forward,
+ * so opening a record from a scrolled list no longer lands mid-page.
+ */
 export function RootLayout() {
   return (
     <>
+      <ScrollRestoration />
       <Outlet />
       <ConfirmDialog />
       <ComposeDialog />

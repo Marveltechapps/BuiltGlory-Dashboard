@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DataTable } from '../../../components/tables/DataTable';
 import { Button } from '../../../components/ui/Button';
@@ -50,6 +50,15 @@ export function ChatTab() {
   const cq = chatQ.trim().toLowerCase();
   const visible = threads.filter((t) => (filter === 'all' || t.status === filter) && (!cq || (t.buyerName + ' ' + t.propertyTitle).toLowerCase().includes(cq)));
   const cur = threads.find((t) => t.id === chatId) ?? null;
+
+  // Messages are oldest-first; keep the conversation pinned to the newest one when a thread opens or a message arrives.
+  const msgsRef = useRef<HTMLDivElement>(null);
+  const curId = cur?.id;
+  const msgCount = cur?.messages.length ?? 0;
+  useEffect(() => {
+    const el = msgsRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [curId, msgCount]);
 
   if (q.isPending || q.isError || threads.length === 0) {
     return (
@@ -209,7 +218,7 @@ export function ChatTab() {
                     {cur.dealId && <button type="button" onClick={() => navigate('/admin/sales/' + cur.dealId)} style={{ fontSize: 13, fontWeight: 500, color: '#15803d', textDecoration: 'underline' }}>View deal →</button>}
                   </div>
                 )}
-                <div style={{ display: 'flex', flex: 1, flexDirection: 'column', gap: 12, overflowY: 'auto', maxHeight: 420, padding: 16 }}>
+                <div ref={msgsRef} style={{ display: 'flex', flex: 1, flexDirection: 'column', gap: 12, overflowY: 'auto', maxHeight: 420, padding: 16 }}>
                   {cur.messages.length === 0 && <p style={{ padding: '32px 0', textAlign: 'center', fontSize: 14, color: '#64748b' }}>No messages yet</p>}
                   {cur.messages.map((m) => {
                     const own = m.sender === 'admin';

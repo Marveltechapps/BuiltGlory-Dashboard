@@ -56,7 +56,7 @@
 .panelTitle { font-weight: 600; }
 .panelNote { margin-top: 2px; font-size: 13px; color: var(--color-muted); }
 .typeGrid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
-.typeBtn { border-radius: 12px; padding: 10px 12px; text-align: left; font-size: 14px; line-height: 20px; font-weight: 500; border: 1px solid var(--color-border); }
+.typeBtn { border-radius: 12px; padding: 10px 12px; text-align: left; font-size: 14px; line-height: 1.5; font-weight: 500; border: 1px solid var(--color-border); }
 .typeBtn:hover { border-color: #2563eb; }
 .selected { margin-top: 12px; font-size: 13px; color: var(--color-muted); }
 .selected strong { color: var(--color-text); }

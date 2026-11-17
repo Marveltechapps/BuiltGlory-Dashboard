@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { findSection, findTab, OVERVIEW } from '../../constants/nav';
@@ -54,6 +54,18 @@ export function AdminLayout() {
     setNotifOpen(false);
     setMSearchOpen(false);
   }, [pathname]);
+
+  // When the section's tab strip overflows (tablet/phone), bring the active tab into view.
+  // Only the strip scrolls sideways; the page's vertical position is left alone.
+  const tabsRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const nav = tabsRef.current;
+    const active = nav?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!nav || !active || nav.scrollWidth <= nav.clientWidth) return;
+    const nr = nav.getBoundingClientRect();
+    const ar = active.getBoundingClientRect();
+    if (ar.left < nr.left || ar.right > nr.right) nav.scrollLeft += ar.left - nr.left - (nr.width - ar.width) / 2;
+  }, [pathname, vw]);
 
   const token = useAuthStore((s) => s.session?.accessToken);
   const overviewAllowed = canAny(['sales.read', 'acquisitions.read', 'support.read', 'users.read', 'visits.read', 'audit.read']);
@@ -150,7 +162,7 @@ export function AdminLayout() {
           {backOnline && <div className={styles.online} role="status">✅ Back online!</div>}
           {tabs.length > 0 && (
             <div className={styles.tabsBar}>
-              <nav aria-label={section!.label + ' tabs'} className={styles.tabs}>
+              <nav ref={tabsRef} aria-label={section!.label + ' tabs'} className={styles.tabs}>
                 {tabs.map((t) => (
                   <Link key={t.path} to={t.path} className={[styles.tab, t.path === pathname ? styles.tabActive : ''].join(' ')} aria-current={t.path === pathname ? 'page' : undefined}>
                     {t.label}
