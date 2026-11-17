@@ -129,7 +129,7 @@ export function PropertiesList({ tab }: { tab: ListTab }) {
       {
         actions: [
           launchPassed(p) ? { label: 'Move to Available', variant: 'green', onClick: () => void act.moveToAvailable(p) } : null,
-          { label: 'View', onClick: open(p) },
+          { label: 'View →', onClick: open(p) },
           { icon: 'more-horizontal', title: 'More actions', onClick: () => setMenuId(p.id) },
         ],
       },

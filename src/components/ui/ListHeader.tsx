@@ -26,12 +26,13 @@ interface ListHeaderProps {
   titleExtra?: ReactNode;
 }
 
-/** Search, filters, and view toggle. The page name already sits in the top bar. */
-export function ListHeader({ title, search, selects, toggle, right, titleExtra }: ListHeaderProps) {
+/** Title + count pill on the left; search, filter selects, view toggle on the right. */
+export function ListHeader({ title, count, search, selects, toggle, right, titleExtra }: ListHeaderProps) {
   return (
     <div className={styles.head}>
       <div className={styles.titleWrap}>
-        <h2 className="bg-sr-only">{title}</h2>
+        <h2 className={styles.title}>{title}</h2>
+        {count != null && <span className={styles.count}>{count}</span>}
         {titleExtra}
       </div>
       <div className={styles.controls}>

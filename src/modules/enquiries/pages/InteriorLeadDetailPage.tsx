@@ -10,7 +10,7 @@ import { useFormFields } from '../../../hooks/useFormFields';
 import { useRefreshingMutation } from '../../../hooks/useRefreshingMutation';
 import { useDesigners } from '../../../hooks/useTeam';
 import { useWorkflowSections } from '../../../hooks/useWorkflowSections';
-import { reachOut } from '../../../lib/contact';
+import { callPhone } from '../../../lib/contact';
 import { badge, price, relativeLong, shortId, statusLabel } from '../../../lib/format';
 import { getInteriorLead, updateInteriorLead, type UpdateInteriorLeadBody } from '../../../services/enquiries';
 import { createSalesDeal } from '../../../services/sales';
@@ -117,7 +117,7 @@ export function InteriorLeadDetailPage() {
       hActions={contactActions({ name: l.buyerName, phone: l.phone, email: l.email, property: l.propertyTitle, entity: { type: 'interior_lead', id: l.id } })}
       banners={[
         lock,
-        breached ? { text: '🔴 SLA breached — respond immediately', tone: 'error', actions: [{ label: '💬 WhatsApp', onClick: () => { reachOut('whatsapp', { name: l.buyerName, to: l.phone, property: l.propertyTitle, entity: { type: 'interior_lead', id: l.id } }); setSt('contacted', 'Marked as contacted'); } }, { label: '📧 Email', onClick: () => { reachOut('email', { name: l.buyerName, to: l.email, property: l.propertyTitle, entity: { type: 'interior_lead', id: l.id } }); if (l.email) setSt('contacted', 'Marked as contacted'); } }] } : null,
+        breached ? { text: '🔴 SLA breached — respond immediately', tone: 'error', actions: [{ label: '📞 Call now', onClick: () => { callPhone(l.buyerName, l.phone); setSt('contacted', 'Marked as contacted'); } }] } : null,
         quoteExpired ? { text: '⚠️ Quote validity (72hrs) has expired.', tone: 'warn', actions: [{ label: 'Send New Quote', onClick: () => f.set('q.pkg', quote?.packageName || '') }] } : null,
         l.status === 'quote_sent' && !quoteExpired && Date.now() - quoteSentAt > 48 * H ? { text: 'No response in 48hrs. Consider following up.', tone: 'warn' } : null,
       ]}
@@ -131,7 +131,7 @@ export function InteriorLeadDetailPage() {
             { label: 'Budget Range', value: BUDGET_LABEL[l.budget] || statusLabel(l.budget) },
           ],
           text: l.specialNotes || 'No special notes',
-          actions: l.propertyId ? [btn('View Property', () => navigate('/admin/properties/' + l.propertyId), 'link')] : [],
+          actions: l.propertyId ? [btn('View Property →', () => navigate('/admin/properties/' + l.propertyId), 'link')] : [],
         },
         {
           title: 'Send Quote to Buyer',
@@ -167,7 +167,7 @@ export function InteriorLeadDetailPage() {
             : [],
           empty: quote ? '' : 'No quotes sent yet',
           actions: [
-            btn('Move to Sales Pipeline', () =>
+            btn('Move to Sales Pipeline →', () =>
               toDeal.mutate(undefined, {
                 onSuccess: (d) => {
                   toast('➡️ Deal created in Active Leads');
@@ -179,7 +179,7 @@ export function InteriorLeadDetailPage() {
         wf.notes(),
       ]}
       side={[
-        personSection('Buyer Info', { name: l.buyerName, phone: l.phone, email: l.email }, [{ label: 'User type', value: l.userType ? l.userType.toUpperCase() : '' }], l.buyerId ? '/admin/users/' + l.buyerId : null, 'View Buyer Profile', navigate),
+        personSection('Buyer Info', { name: l.buyerName, phone: l.phone, email: l.email }, [{ label: 'User type', value: l.userType ? l.userType.toUpperCase() : '' }], l.buyerId ? '/admin/users/' + l.buyerId : null, 'View Buyer Profile →', navigate),
         {
           title: 'Response SLA (24hrs)',
           subtitle: 'All interior leads must be responded to within 24 hours',
@@ -199,8 +199,7 @@ export function InteriorLeadDetailPage() {
           stack: true,
           actions: [
             btn('📤 Send Quote', () => f.set('q.pkg', f.str('q.pkg') || 'Premium Interior Package')),
-            btn('💬 WhatsApp', () => { reachOut('whatsapp', { name: l.buyerName, to: l.phone, property: l.propertyTitle, entity: { type: 'interior_lead', id: l.id } }); if (l.status === 'new') setSt('contacted', 'Marked as contacted'); }),
-            btn('📧 Email', () => { reachOut('email', { name: l.buyerName, to: l.email, property: l.propertyTitle, entity: { type: 'interior_lead', id: l.id } }); if (l.status === 'new' && l.email) setSt('contacted', 'Marked as contacted'); }),
+            btn('📞 Log Call', () => { callPhone(l.buyerName, l.phone); if (l.status === 'new') setSt('contacted', 'Marked as contacted'); }),
             ['new', 'contacted', 'quote_sent', 'negotiating'].includes(l.status) ? btn('❌ Mark Declined', () => askConfirm({ title: 'Mark as declined?', confirmLabel: 'Mark Declined', tone: 'destructive', onConfirm: async () => { await update.mutateAsync({ status: 'declined' }); toast('Lead marked declined'); } }), 'red') : null,
           ],
         },

@@ -1,7 +1,8 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { Navigate, Outlet, useLocation, useSearchParams } from 'react-router-dom';
 import { DETAIL_ROUTES, findTab, OVERVIEW } from '../../constants/nav';
 import { firstAllowedPath, isPathAllowed } from '../../constants/permissions';
+import { clearIntentionalSignOut, isIntentionalSignOut } from '../../lib/signOutIntent';
 import { useAuthStore } from '../../store/authStore';
 import { ComposeDialog } from '../../components/ui/ComposeDialog';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
@@ -29,6 +30,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   const expired = useAuthStore((s) => s.expired);
   const { pathname, search } = useLocation();
   if (!session) {
+    if (isIntentionalSignOut()) return <Navigate to="/login" replace />;
     const redirect = encodeURIComponent(pathname + search);
     return <Navigate to={`/login?${expired ? 'reason=timeout&' : ''}redirect=${redirect}`} replace />;
   }
@@ -41,6 +43,9 @@ export function RequireAuth({ children }: { children: ReactNode }) {
 export function PublicOnly({ children }: { children: ReactNode }) {
   const session = useAuthStore((s) => s.session);
   const [params] = useSearchParams();
+  useEffect(() => {
+    if (!session) clearIntentionalSignOut();
+  }, [session]);
   if (session) {
     const r = params.get('redirect');
     return <Navigate to={r && SAFE_REDIRECT.test(r) ? r : OVERVIEW.path} replace />;

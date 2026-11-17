@@ -118,7 +118,7 @@ export function PropertyTemplates() {
     <PageStack>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
         <div>
-          <h2 className="bg-sr-only">Property Templates</h2>
+          <h2 className={styles.h2}>Property Templates</h2>
           <p className={styles.lead}>Edit the master sheet template inline</p>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>

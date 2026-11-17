@@ -120,7 +120,7 @@ export function SupportTicketDetailPage() {
         wf.notes('Notes', 'Internal notes only — not visible to users'),
       ]}
       side={[
-        personSection('User Info', { name: t.userName, phone: t.phone, email: t.email }, [], t.userId ? '/admin/users/' + t.userId : null, 'View User Profile', navigate),
+        personSection('User Info', { name: t.userName, phone: t.phone, email: t.email }, [], t.userId ? '/admin/users/' + t.userId : null, 'View User Profile →', navigate),
         {
           title: 'Ticket Info',
           cols: 1,

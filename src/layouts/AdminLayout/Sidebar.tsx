@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { OVERVIEW } from '../../constants/nav';
 import { allowedSections } from '../../constants/permissions';
 import { Icon } from '../../components/ui/Icon';
-import { LogoMark } from '../../components/ui/LogoMark';
 import { useClickOutside } from '../../hooks/useDomUtils';
 import { useSession } from '../../hooks/useSession';
 import { initials } from '../../lib/format';
@@ -69,16 +68,13 @@ export function Sidebar({ mode, mobileOpen, onToggle, badges, onLogout }: Sideba
         style={{ width: collapsed ? 64 : 240, transform: hiddenNow ? 'translateX(-100%)' : 'translateX(0)', boxShadow: mobileOpen ? '0 25px 50px -12px rgb(0 0 0 / 0.25)' : 'none' }}
         aria-hidden={hiddenNow}
       >
-        <div className={styles.sbHead} data-collapsed={collapsed || undefined}>
-          <button type="button" className={styles.brandBtn} onClick={() => go(OVERVIEW.path)} aria-label="BuiltGlory">
-            <LogoMark size={collapsed ? 28 : 36} />
-            {!collapsed && (
-              <span className={styles.brandText}>
-                <span className={styles.brand}>BUILTGLORY</span>
-                <span className={styles.brandSub}>Admin Dashboard</span>
-              </span>
-            )}
-          </button>
+        <div className={styles.sbHead} style={{ padding: collapsed ? '0 8px' : '0 16px', justifyContent: collapsed ? 'center' : 'flex-start' }}>
+          {!collapsed && (
+            <button type="button" className={styles.brandBtn} onClick={() => go(OVERVIEW.path)}>
+              <span className={styles.brand}>BUILTGLORY</span>
+              <span className={styles.brandSub}>Admin Dashboard</span>
+            </button>
+          )}
           <button type="button" className={styles.toggle} onClick={() => { hideTip(); onToggle(); }} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
             <Icon name={collapsed ? 'chevron-right' : 'chevron-left'} size={16} />
           </button>

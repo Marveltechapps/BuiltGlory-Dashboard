@@ -7,7 +7,7 @@ import styles from './Overview.module.css';
 export function PropertiesDonut({ data }: { data: Array<{ value?: string; count: number }> }) {
   const { ref, el, width: PW } = useElementWidth<HTMLDivElement>();
   const [hover, setHover] = useState<{ i: number; mx: number; my: number } | null>(null);
-  const pie = data.filter((t) => t.count > 0).map((t, i) => ({ name: labelOf(t.value), value: t.count, color: CHART_COLORS[i % CHART_COLORS.length]! }));
+  const pie = data.filter((t) => t.count > 0).sort((x, y) => y.count - x.count).map((t, i) => ({ name: labelOf(t.value), value: t.count, color: CHART_COLORS[i % CHART_COLORS.length]! }));
   if (!pie.length) return <div className={styles.chartBox}>No active property mix yet</div>;
 
   const total = pie.reduce((t, d) => t + d.value, 0);

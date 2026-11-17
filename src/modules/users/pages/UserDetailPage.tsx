@@ -179,7 +179,7 @@ export function UserDetailPage() {
         {
           title: 'Enquiry History',
           tag: 'App screen: B-10, P-02',
-          rows: enq.map((e) => ({ key: e.id, title: e.propertyTitle, sub: relativeLong(e.createdAt), badges: [statusBadge(e.status)], onClick: () => navigate('/admin/enquiries/buy/' + e.id), actions: [{ label: 'View', onClick: () => navigate('/admin/enquiries/buy/' + e.id) }] })),
+          rows: enq.map((e) => ({ key: e.id, title: e.propertyTitle, sub: relativeLong(e.createdAt), badges: [statusBadge(e.status)], onClick: () => navigate('/admin/enquiries/buy/' + e.id), actions: [{ label: 'View →', onClick: () => navigate('/admin/enquiries/buy/' + e.id) }] })),
           empty: enq.length ? '' : loading(enqQ) ? 'Loading…' : enqQ.isError ? 'Could not load enquiries' : 'No enquiries yet',
         },
         {
@@ -191,7 +191,7 @@ export function UserDetailPage() {
         {
           title: 'Deal History',
           tag: 'App screen: P-04',
-          rows: deals.map((d) => ({ key: d.id, title: d.propertyTitle, sub: salesStage(d.stage) + ' · ' + price(d.agreedPrice || d.listedPrice), onClick: () => navigate('/admin/sales/' + d.id), actions: [{ label: 'View Deal', onClick: () => navigate('/admin/sales/' + d.id) }] })),
+          rows: deals.map((d) => ({ key: d.id, title: d.propertyTitle, sub: salesStage(d.stage) + ' · ' + price(d.agreedPrice || d.listedPrice), onClick: () => navigate('/admin/sales/' + d.id), actions: [{ label: 'View Deal →', onClick: () => navigate('/admin/sales/' + d.id) }] })),
           empty: deals.length ? '' : loading(dealsQ) ? 'Loading…' : dealsQ.isError ? 'Could not load deals' : 'No deals yet',
         },
         {

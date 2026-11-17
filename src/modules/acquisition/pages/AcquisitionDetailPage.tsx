@@ -16,6 +16,7 @@ import { useFormFields } from '../../../hooks/useFormFields';
 import { useRefreshingMutation } from '../../../hooks/useRefreshingMutation';
 import { useSalesTeam } from '../../../hooks/useTeam';
 import { useWorkflowSections } from '../../../hooks/useWorkflowSections';
+import { callPhone } from '../../../lib/contact';
 import { acqStage, badge, date, price, relativeLong, shortId, statusLabel, todayIso, typeLabel } from '../../../lib/format';
 import { arr, asRaw, num, str, type Raw } from '../../../lib/raw';
 import { convertAcquisitionToProperty, getAcquisition, updateAcquisition, updateAcquisitionSection, updateAcquisitionStage, type AcquisitionSection } from '../../../services/acquisitions';
@@ -138,7 +139,7 @@ export function AcquisitionDetailPage() {
           { label: 'Location', value: a.location },
           { label: 'Source', value: a.sellRequestId ? 'Sell request' : a.createdFrom === 'manual' ? 'Manually created' : 'App submission' },
         ],
-        actions: a.sellRequestId ? [btn('View Sell Request', () => navigate('/admin/enquiries/sell/' + a.sellRequestId), 'link')] : [],
+        actions: a.sellRequestId ? [btn('View Sell Request →', () => navigate('/admin/enquiries/sell/' + a.sellRequestId), 'link')] : [],
       },
       {
         title: 'Property Photos',
@@ -680,7 +681,7 @@ export function AcquisitionDetailPage() {
         ],
       },
       listedId
-        ? { title: 'Listed', banners: [{ text: '✅ Listed on app', tone: 'success' }], actions: [btn('View Property', () => navigate('/admin/properties/' + listedId), 'primary')] }
+        ? { title: 'Listed', banners: [{ text: '✅ Listed on app', tone: 'success' }], actions: [btn('View Property →', () => navigate('/admin/properties/' + listedId), 'primary')] }
         : {
             title: 'List This Property for Sale',
             subtitle: 'This property is ready to list on app',
@@ -713,7 +714,7 @@ export function AcquisitionDetailPage() {
           const ok = names.filter((n) => asRaw(docsMap[n]).status === 'verified').length;
           return { key: k, title: k, sub: ok + '/' + names.length + ' verified', badges: [ok === names.length ? badge('✅ Verified', 'green') : badge('Incomplete', 'amber')] };
         }),
-        actions: [btn('Add to Master Sheet', () => navigate('/admin/tools/mastersheet'), 'link')],
+        actions: [btn('Add to Master Sheet →', () => navigate('/admin/tools/mastersheet'), 'link')],
       },
     );
   }
@@ -778,6 +779,7 @@ export function AcquisitionDetailPage() {
       badges={[{ text: label, dot: STAGE_DOT.acquisition[stage] || '#94a3b8' }, a.priority !== 'normal' ? { text: statusLabel(a.priority), tone: a.priority === 'urgent' ? 'red' : 'orange' } : null, a.createdFrom === 'manual' ? { text: 'Manually created', tone: 'muted' } : null]}
       meta={shortId(a.id, a.referenceId) + ' • Created: ' + date(a.createdAt) + ' • ' + days + ' days in current stage' + (days > 14 && idx >= 0 ? ' • ⚠️ Stalled' : '')}
       hActions={[
+        btn('📞 Call Seller', () => callPhone(a.sellerName, a.sellerPhone)),
         btn('💬 WhatsApp', () => msgSeller('whatsapp'), 'green'),
         btn('📧 Email', () => msgSeller('email'), 'outline', { disabled: !a.sellerEmail }),
         btn('👤 Assign To' + (assigned ? ': ' + assigned : ''), () => {
@@ -814,7 +816,7 @@ export function AcquisitionDetailPage() {
       stepNote={stage === 'on_hold' ? { text: '⏸ On Hold', tone: 'orange' } : stage === 'acquired' ? { text: '🏠 Acquired', tone: 'green' } : null}
       main={stage === 'rejected' ? [{ title: 'Rejected', banners: [{ text: '❌ Rejected — ' + (a.rejectionReason || 'No reason recorded'), tone: 'error' }] }, ...main] : main}
       side={[
-        personSection('Seller · Property Owner', { name: a.sellerName, phone: a.sellerPhone, email: a.sellerEmail }, [{ label: 'City', value: a.city }], a.sellerId ? '/admin/users/' + a.sellerId : null, 'View Seller Profile', navigate),
+        personSection('Seller · Property Owner', { name: a.sellerName, phone: a.sellerPhone, email: a.sellerEmail }, [{ label: 'City', value: a.city }], a.sellerId ? '/admin/users/' + a.sellerId : null, 'View Seller Profile →', navigate),
         {
           title: 'Property',
           cols: 1,
@@ -825,7 +827,7 @@ export function AcquisitionDetailPage() {
             { label: 'BG Offer', value: offerAmt ? price(offerAmt) : '—', color: '#15803d' },
             { label: 'Agreed', value: a.agreedPrice ? price(a.agreedPrice) : '—', color: '#15803d' },
           ],
-          actions: a.propertyId ? [btn('View Property', () => navigate('/admin/properties/' + a.propertyId), 'link')] : a.sellRequestId ? [btn('View Sell Request', () => navigate('/admin/enquiries/sell/' + a.sellRequestId), 'link')] : [],
+          actions: a.propertyId ? [btn('View Property →', () => navigate('/admin/properties/' + a.propertyId), 'link')] : a.sellRequestId ? [btn('View Sell Request →', () => navigate('/admin/enquiries/sell/' + a.sellRequestId), 'link')] : [],
         },
         ['acquired', 'rejected', 'on_hold'].includes(stage) ? null : { title: 'Actions', stack: true, actions: [btn('⏸️ Put On Hold', hold), ['token_to_seller', 'documentation', 'seller_payout'].includes(stage) ? null : btn('❌ Reject', () => reject(), 'red')] },
         wf.activity(),

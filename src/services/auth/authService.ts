@@ -16,6 +16,11 @@ export function getLoginStats(signal?: AbortSignal): Promise<AdminLoginStats> {
   return apiRequest<AdminLoginStats>('/v1/public/admin-login-stats', { anonymous: true, signal });
 }
 
+/** GET /api/v1/public/admin-login-stats with the admin session (the API requires an admin token for this route). */
+export function getLoginStatsSignedIn(signal?: AbortSignal): Promise<AdminLoginStats> {
+  return apiRequest<AdminLoginStats>('/v1/public/admin-login-stats', { signal });
+}
+
 /** GET /api/v1/admin/sessions */
 export const listDeviceSessions = (signal?: AbortSignal) => apiRequest<AdminDeviceSession[]>('/v1/admin/sessions', { signal });
 

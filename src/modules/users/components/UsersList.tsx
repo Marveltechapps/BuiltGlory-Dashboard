@@ -123,7 +123,7 @@ export function UsersList({ tab }: { tab: Tab }) {
         { title: u.city || '—', sub: u.country && u.country !== 'India' ? u.country : u.state },
         { title: date(u.registeredAt), muted: true },
         { badges: [u.isBlocked ? badge('Blocked', 'red') : badge('Active', 'green')] },
-        { actions: [{ label: 'View', onClick: open(u) }, { icon: 'more-horizontal', title: 'More actions', onClick: () => setMenuId(u.id) }] },
+        { actions: [{ label: 'View →', onClick: open(u) }, { icon: 'more-horizontal', title: 'More actions', onClick: () => setMenuId(u.id) }] },
       ],
     };
   });
@@ -144,7 +144,8 @@ export function UsersList({ tab }: { tab: Tab }) {
       <div className={styles.head}>
         <div>
           <div className={styles.titleRow}>
-            <h2 className="bg-sr-only">Users</h2>
+            <h2 className={styles.title}>Users</h2>
+            <span className={styles.count}>{base.length}</span>
           </div>
           <p className={styles.lead}>Manage buyers, sellers, and access status</p>
         </div>
@@ -210,7 +211,7 @@ export function UsersList({ tab }: { tab: Tab }) {
                   <p>{'📍 ' + (u.city || '—') + (u.country && u.country !== 'India' ? ', ' + u.country : '')}</p>
                   <p>{'Last login ' + (u.lastLoginAt ? relativeLong(u.lastLoginAt) : 'never')}</p>
                 </div>
-                <span className={styles.cta}>View Profile</span>
+                <span className={styles.cta}>View Profile →</span>
               </div>
             );
           })}

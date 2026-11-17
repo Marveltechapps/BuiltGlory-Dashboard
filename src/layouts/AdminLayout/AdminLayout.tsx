@@ -4,15 +4,16 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { findSection, findTab, OVERVIEW } from '../../constants/nav';
 import { allowedSections } from '../../constants/permissions';
 import { Icon } from '../../components/ui/Icon';
-import { LogoMark } from '../../components/ui/LogoMark';
 import { Skeleton } from '../../components/ui/Skeleton';
 import { useOnlineStatus } from '../../hooks/useDomUtils';
 import { useSession } from '../../hooks/useSession';
 import { useViewport } from '../../hooks/useViewport';
 import { adminIdleExpired, touchAdminActivity } from '../../lib/apiClient';
+import { markIntentionalSignOut } from '../../lib/signOutIntent';
 import { chatSocket } from '../../lib/realtime';
 import { getOverview } from '../../services/overview';
 import { logoutAdmin } from '../../services/auth';
+import { useCacheLoginStats } from '../../modules/auth/hooks/useAuth';
 import { useAuthStore } from '../../store/authStore';
 import { GlobalSearch, MobileSearch } from './GlobalSearch';
 import { NotificationsMenu } from './NotificationsMenu';
@@ -57,6 +58,7 @@ export function AdminLayout() {
   const token = useAuthStore((s) => s.session?.accessToken);
   const overviewAllowed = canAny(['sales.read', 'acquisitions.read', 'support.read', 'users.read', 'visits.read', 'audit.read']);
   const overview = useQuery({ queryKey: ['overview'], queryFn: ({ signal }) => getOverview(signal), enabled: overviewAllowed, refetchInterval: 60_000, retry: false });
+  useCacheLoginStats(overviewAllowed);
   useEffect(() => {
     touchAdminActivity();
     const mark = () => touchAdminActivity();
@@ -104,6 +106,7 @@ export function AdminLayout() {
   const logout = () => {
     const rt = useAuthStore.getState().session?.refreshToken;
     if (rt) void logoutAdmin(rt).catch(() => undefined);
+    markIntentionalSignOut();
     useAuthStore.getState().signOut();
     qc.clear();
     navigate('/login');
@@ -132,9 +135,7 @@ export function AdminLayout() {
             </button>
           )}
           {(hidden || collapsed) && (
-            <button type="button" className={styles.hBrand} onClick={() => navigate(OVERVIEW.path)} aria-label="BuiltGlory">
-              <LogoMark size={32} />
-            </button>
+            <button type="button" className={styles.hBrand} onClick={() => navigate(OVERVIEW.path)}>BUILTGLORY</button>
           )}
           <h1 className={styles.pageTitle} style={{ fontSize: isMd ? 20 : 18 }}>{pageTitle}</h1>
           {isMd && <GlobalSearch />}

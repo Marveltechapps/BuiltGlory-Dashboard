@@ -17,6 +17,7 @@ import { useProperty } from '../../../hooks/useProperty';
 import { useRefreshingMutation } from '../../../hooks/useRefreshingMutation';
 import { useDesigners, useSalesTeam } from '../../../hooks/useTeam';
 import { useWorkflowSections } from '../../../hooks/useWorkflowSections';
+import { callPhone } from '../../../lib/contact';
 import { addDaysIso, badge, date, price, relativeLong, salesStage, shortId, statusLabel, time12, todayIso } from '../../../lib/format';
 import { arr, asRaw, num, str, type Raw } from '../../../lib/raw';
 import { listVisits, submitVisitFeedback, updateVisitStatus } from '../../../services/enquiries';
@@ -200,7 +201,7 @@ export function SalesDealDetailPage() {
         title: 'Buyer Enquiry',
         fields: [{ label: 'Source', value: d.sourceEnquiryId ? 'Buy enquiry' : 'Via App' }, { label: 'Listed price', value: price(d.listedPrice) }],
         banners: [days > 14 ? { text: 'Stale Lead 🔴 — no movement in ' + days + ' days', tone: 'error', action: { label: 'Mark as Lost', onClick: () => lose() } } : days > 5 ? { text: 'Follow up needed', tone: 'warn' } : null],
-        actions: d.sourceEnquiryId ? [btn('View Original Enquiry', () => navigate('/admin/enquiries/buy/' + d.sourceEnquiryId), 'link')] : [],
+        actions: d.sourceEnquiryId ? [btn('View Original Enquiry →', () => navigate('/admin/enquiries/buy/' + d.sourceEnquiryId), 'link')] : [],
       },
       !editing && ql
         ? {
@@ -279,7 +280,7 @@ export function SalesDealDetailPage() {
                 if (visit.visitType === 'virtual') return visit.meetingLink ? void window.open(visit.meetingLink, '_blank', 'noopener,noreferrer') : toast('⚠️ No meeting link added');
                 window.open('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(visit.propertyTitle + ' ' + visit.propertyAddress), '_blank', 'noopener,noreferrer');
               }),
-              btn('Open visit', () => navigate('/admin/visits/' + visit.id), 'link'),
+              btn('Open visit →', () => navigate('/admin/visits/' + visit.id), 'link'),
             ],
           }
         : {
@@ -924,6 +925,7 @@ export function SalesDealDetailPage() {
         form: [f.inp('fu', 'Follow-up date', { type: 'date', min: today })],
         actions: [
           btn('Save Follow-up', () => { if (!f.str('fu')) return void f.fail('fu', 'Pick a date'); void exec(() => updateSalesDeal(d.id, { reengagement: { ...d.reengagement, followUpAt: f.str('fu') } }), 'Follow-up date saved').then(() => f.set('fu', '')); }),
+          btn('📞 Call', () => callPhone(d.buyerName, d.buyerPhone)),
           btn('💬 WhatsApp', () => msg('whatsapp'), 'green'),
           btn('📧 Email', () => msg('email')),
         ],
@@ -987,6 +989,7 @@ export function SalesDealDetailPage() {
       badges={[{ text: label, dot: STAGE_DOT.sales[stage] || '#94a3b8' }, d.priority !== 'normal' ? { text: statusLabel(d.priority), tone: d.priority === 'urgent' ? 'red' : 'orange' } : null]}
       meta={shortId(d.id, d.referenceId) + ' • Created: ' + date(d.createdAt) + ' • ' + days + ' days in current stage' + (days > 14 && !['closed', 'lost'].includes(stage) ? ' • ⚠️ Stalled' : '')}
       hActions={[
+        btn('📞 Call Buyer', () => callPhone(d.buyerName, d.buyerPhone)),
         btn('💬 WhatsApp', () => msg('whatsapp'), 'green'),
         btn('📧 Email', () => msg('email'), 'outline', { disabled: !d.buyerEmail }),
         btn('👤 Assign To' + (assigned ? ': ' + assigned : ''), () => {
@@ -1019,7 +1022,7 @@ export function SalesDealDetailPage() {
       currentStep={idx}
       main={['lost', 're_engagement'].includes(stage) ? [{ title: label, banners: [{ text: stage === 'lost' ? '❌ Lost' : '🔄 Re-engagement', tone: stage === 'lost' ? 'error' : 'warn' }] }, ...main] : main}
       side={[
-        personSection('Buyer', { name: d.buyerName, phone: d.buyerPhone, email: d.buyerEmail }, [], d.buyerId ? '/admin/users/' + d.buyerId : null, 'View Buyer Profile', navigate),
+        personSection('Buyer', { name: d.buyerName, phone: d.buyerPhone, email: d.buyerEmail }, [], d.buyerId ? '/admin/users/' + d.buyerId : null, 'View Buyer Profile →', navigate),
         propertySection('Property', p, { id: d.propertyId, title: d.propertyTitle, price: d.listedPrice, type: d.propertyType, location: d.propertyLocation, image: d.photos[0] }, navigate),
         {
           title: 'Deal Summary',

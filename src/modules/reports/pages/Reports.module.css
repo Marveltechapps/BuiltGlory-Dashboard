@@ -5,10 +5,6 @@
 .small { font-size: 13px; color: var(--color-muted); }
 .note { border-radius: 8px; background: #eff6ff; padding: 8px 12px; font-size: 12px; line-height: 16px; color: #1d4ed8; }
 .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-@media (max-width: 767px) {
-  .filters, .select, .date, .seg { width: 100%; }
-  .kpiValue { font-size: 22px; }
-}
 .seg { display: flex; flex-wrap: wrap; overflow: hidden; border-radius: 8px; border: 1px solid var(--color-border); background: #ffffff; }
 .segBtn { height: 34px; padding: 0 12px; font-size: 13px; font-weight: 500; }
 .date { height: 36px; border-radius: 8px; border: 1px solid var(--color-border); background: #ffffff; padding: 0 8px; font-size: 13px; }

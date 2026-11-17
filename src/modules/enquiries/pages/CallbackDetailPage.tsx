@@ -67,7 +67,7 @@ export function CallbackDetailPage() {
             { label: 'SLA deadline', value: cb.slaDeadline ? dateTime(cb.slaDeadline) : '', color: overdue ? '#dc2626' : '#0f172a', strong: true },
             { label: 'Property', value: cb.propertyTitle },
           ],
-          actions: cb.propertyId ? [btn('View Property', () => navigate('/admin/properties/' + cb.propertyId), 'link')] : [],
+          actions: cb.propertyId ? [btn('View Property →', () => navigate('/admin/properties/' + cb.propertyId), 'link')] : [],
         },
         {
           title: 'Log Call Attempt',
@@ -96,7 +96,7 @@ export function CallbackDetailPage() {
         wf.notes(),
       ]}
       side={[
-        personSection('Caller Info', { name: cb.callerName, phone: cb.phone, email: cb.email }, [], cb.callerId ? '/admin/users/' + cb.callerId : null, 'View Profile', navigate),
+        personSection('Caller Info', { name: cb.callerName, phone: cb.phone, email: cb.email }, [], cb.callerId ? '/admin/users/' + cb.callerId : null, 'View Profile →', navigate),
         {
           title: 'Callback Info',
           cols: 1,

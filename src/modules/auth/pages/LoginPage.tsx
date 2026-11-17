@@ -2,8 +2,9 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon } from '../../../components/ui/Icon';
 import { useViewport } from '../../../hooks/useViewport';
+import { num } from '../../../lib/format';
 import { toast } from '../../../store/uiStore';
-import { useLogin } from '../hooks/useAuth';
+import { useLogin, useLoginStats } from '../hooks/useAuth';
 import styles from './LoginPage.module.css';
 
 const SAFE_REDIRECT = /^\/admin(?:\/|$|\?)/;
@@ -14,6 +15,8 @@ export function LoginPage() {
   const [params] = useSearchParams();
   const { isMd, isLg } = useViewport();
   const login = useLogin();
+  const stats = useLoginStats();
+  const statVal = (n?: number) => (stats.data ? num(n ?? 0) : stats.isError ? '—' : '…');
   const [view, setView] = useState<View>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -60,10 +63,17 @@ export function LoginPage() {
           </div>
           <div className={styles.center}>
             <div className={styles.logoCard}>
-              <img src="/login-logo.png" alt="" width={148} height={148} draggable={false} className={styles.heroLogo} />
+              <div className={styles.logoInner}>
+                <Icon name="building-2" size={80} stroke={1.25} />
+              </div>
             </div>
             <h2 className={styles.headline}>Manage your real estate operations</h2>
             <p className={styles.tagline}>Properties, Pipelines, Users and more — all in one place.</p>
+            <div className={styles.stats}>
+              <div className={styles.stat}><p className={styles.statValue}>{statVal(stats.data?.properties)}</p><p className={styles.statLabel}>Properties</p></div>
+              <div className={styles.stat}><p className={styles.statValue}>{statVal(stats.data?.users)}</p><p className={styles.statLabel}>Users</p></div>
+              <div className={styles.stat}><p className={styles.statValue}>{statVal(stats.data?.deals)}</p><p className={styles.statLabel}>Deals</p></div>
+            </div>
           </div>
           <p className={styles.copy}>© 2026 Builtglory. All rights reserved.</p>
         </aside>
@@ -74,7 +84,6 @@ export function LoginPage() {
           {view === 'login' && (
             <>
               <div>
-                {!isLg && <div className={styles.mobileMark}><img src="/login-logo.png" alt="" width={56} height={56} draggable={false} /></div>}
                 <h1 className={styles.h1}>Welcome back</h1>
                 <p className={styles.sub}>Sign in to your admin account</p>
               </div>

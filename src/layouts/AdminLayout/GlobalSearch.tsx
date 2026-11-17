@@ -2,7 +2,6 @@ import { useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/ui/Icon';
-import { SkeletonRows } from '../../components/ui/Skeleton';
 import { useClickOutside, useDebounced } from '../../hooks/useDomUtils';
 import { searchDashboard } from '../../services/search';
 import type { SearchResult } from '../../types/overview';
@@ -29,7 +28,7 @@ function useSearch(q: string) {
 
 function Results({ q, results, loading, onSelect, compact }: { q: string; results: SearchResult[]; loading: boolean; onSelect: (r: SearchResult) => void; compact?: boolean }) {
   const groups = ORDER.map(([type, label]) => ({ label, items: results.filter((r) => r.type === type) })).filter((g) => g.items.length > 0);
-  if (loading) return <div style={{ padding: '8px 16px 12px' }}><SkeletonRows count={3} /></div>;
+  if (loading) return <div className={styles.resultsMsg}>Searching live records...</div>;
   if (!results.length) {
     return (
       <div className={styles.noResults}>

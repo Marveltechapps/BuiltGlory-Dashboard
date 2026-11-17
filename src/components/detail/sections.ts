@@ -1,5 +1,6 @@
 import type { NavigateFunction } from 'react-router-dom';
 import { STATUS_TONES } from '../../constants/labels';
+import { callPhone } from '../../lib/contact';
 import { price as fmtPrice, statusLabel, typeLabel } from '../../lib/format';
 import { openCompose } from '../../store/uiStore';
 import type { Property } from '../../types/properties';
@@ -64,9 +65,10 @@ export interface ContactOpts {
   entity?: { type: EntityType; id: string };
 }
 
-/** WhatsApp and email header actions. */
+/** 📞 Call / 💬 WhatsApp / 📧 Email header actions. */
 export function contactActions(o: ContactOpts): DetailAction[] {
   return [
+    btn('📞 ' + (o.callLabel || 'Call'), () => callPhone(o.name, o.phone)),
     btn('💬 WhatsApp', () => openCompose({ channel: 'whatsapp', name: o.name, to: o.phone, property: o.property, entity: o.entity }), 'green'),
     btn('📧 Email', () => openCompose({ channel: 'email', name: o.name, to: o.email, property: o.property, entity: o.entity }), 'outline', { disabled: !o.email, title: o.email ? '' : 'No email on file' }),
   ];

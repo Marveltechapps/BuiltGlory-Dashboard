@@ -16,7 +16,7 @@ export const ENQ_TABS: Record<string, string[]> = {
 };
 
 export const INTEREST: Record<string, [string, string]> = { schedule_visit: ['Visit', 'blue'], price_negotiation: ['Negotiate', 'purple'], more_details: ['Details', 'muted'] };
-export const INTEREST_LONG: Record<string, string> = { schedule_visit: 'Schedule a Visit', price_negotiation: 'Price Negotiation', more_details: 'More Details' };
+export const INTEREST_LONG: Record<string, string> = { schedule_visit: 'Schedule a visit', price_negotiation: 'Price negotiation', more_details: 'More details' };
 export const CONTACT_ICON: Record<string, string> = { phone: 'phone', whatsapp: 'message-circle', email: 'mail' };
 export const STYLE_LABEL: Record<string, string> = { modern: 'Modern', contemporary: 'Contemporary', minimalist: 'Minimalist', classic: 'Classic' };
 export const BUDGET_LABEL: Record<string, string> = { budget: 'Budget', standard: 'Standard', premium: 'Premium', luxury: 'Luxury' };

@@ -159,7 +159,7 @@ export function BulkUpload() {
   return (
     <div className={styles.narrow}>
       <div>
-        <h2 className="bg-sr-only">Bulk Upload</h2>
+        <h2 className={styles.h2}>Bulk Upload</h2>
         <p className={styles.lead}>Import properties from the Builtglory Master Sheet</p>
       </div>
       <input

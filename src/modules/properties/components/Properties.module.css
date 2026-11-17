@@ -51,7 +51,7 @@
 /* ---- add property ---- */
 .narrow { margin: 0 auto; display: flex; width: 100%; max-width: 1100px; flex-direction: column; gap: 16px; }
 .h2 { font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -0.025em; }
-.lead { font-size: 14px; line-height: 20px; color: var(--color-muted); }
+.lead { font-size: 14px; line-height: 1.5; color: var(--color-muted); }
 .panel { border-radius: 12px; border: 1px solid var(--color-border); background: #ffffff; padding: 20px; }
 .panelTitle { font-weight: 600; }
 .panelNote { margin-top: 2px; font-size: 13px; color: var(--color-muted); }
@@ -77,17 +77,17 @@
 .chip { height: 30px; border-radius: 9999px; padding: 0 12px; font-size: 13px; font-weight: 500; border: 1px solid var(--color-border); }
 .formError { border-radius: 8px; border: 1px solid #fecaca; background: #fef2f2; padding: 10px 12px; font-size: 14px; line-height: 20px; color: #991b1b; }
 .sticky { position: sticky; bottom: 0; display: flex; justify-content: flex-end; gap: 8px; border-radius: 12px; border: 1px solid var(--color-border); background: rgba(255, 255, 255, 0.95); padding: 12px 16px; backdrop-filter: blur(6px); }
-.btnOutline { display: inline-flex; height: 36px; align-items: center; gap: 6px; border-radius: 8px; border: 1px solid var(--color-border); background: #ffffff; padding: 0 16px; font-size: 14px; line-height: 20px; font-weight: 500; }
+.btnOutline { display: inline-flex; height: 36px; align-items: center; gap: 6px; border-radius: 8px; border: 1px solid var(--color-border); background: #ffffff; padding: 0 16px; font-size: 14px; line-height: 1.5; font-weight: 500; }
 .btnOutline:hover { background: #f1f5f9; }
-.btnPrimary { display: inline-flex; height: 36px; align-items: center; gap: 6px; border-radius: 8px; background: #2563eb; padding: 0 16px; font-size: 14px; line-height: 20px; font-weight: 500; color: #ffffff; }
+.btnPrimary { display: inline-flex; height: 36px; align-items: center; gap: 6px; border-radius: 8px; background: #2563eb; padding: 0 16px; font-size: 14px; line-height: 1.5; font-weight: 500; color: #ffffff; }
 .btnPrimary:hover { background: #1d4ed8; }
 .btnOutline:disabled, .btnPrimary:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* ---- bulk upload ---- */
 .drop { display: flex; cursor: pointer; flex-direction: column; align-items: center; gap: 8px; border-radius: 16px; border: 2px dashed #cbd5e1; background: #ffffff; padding: 48px 20px; text-align: center; }
 .drop:hover, .dropActive { border-color: #2563eb; background: #eff6ff; }
-.dropTitle { font-size: 18px; line-height: 28px; font-weight: 600; }
-.dropHint { font-size: 12px; line-height: 16px; color: #94a3b8; }
+.dropTitle { font-size: 18px; line-height: 1.5; font-weight: 600; }
+.dropHint { font-size: 12px; line-height: 1.5; color: #94a3b8; }
 .dropActions { margin-top: 8px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .parsing { display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 16px; border: 1px solid var(--color-border); background: #ffffff; padding: 48px; font-size: 14px; line-height: 20px; color: var(--color-muted); }
 .fileBar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; border-radius: 12px; border: 1px solid var(--color-border); background: #ffffff; padding: 12px 16px; }
