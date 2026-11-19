@@ -58,7 +58,8 @@ export const reorderContent = (items: Array<{ id: string; order: number }>) => a
 
 /**
  * Creates or updates the published CMS record identified by `slug` whose `metadata` holds a
- * Tools configuration (home layout, banners, onboarding slides, locations, pricing, …).
+ * Tools configuration (home layout, banners, onboarding slides, …).
+ * Locations and boost orders use dedicated `/admin/locations` and `/admin/boost-orders` APIs.
  */
 export async function upsertConfig(
   existing: ContentItem | undefined,

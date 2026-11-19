@@ -23,7 +23,7 @@ import { arr, asRaw, num, str, type Raw } from '../../../lib/raw';
 import { listVisits, submitVisitFeedback, updateVisitStatus } from '../../../services/enquiries';
 import { findProperties, updateProperty, updatePropertyStatus } from '../../../services/properties';
 import {
-  closeDeal, createSalesDeal, getSalesDeal, listDealRecommendations, listPayments, markDealLost, updateDealOffer, updateDealPaymentPlan,
+  closeDeal, createSalesDeal, getSalesDeal, listDealRecommendations, listPayments, markDealLost, recordVerifiedRefund, updateDealOffer, updateDealPaymentPlan,
   updateDealStage, updateDealTokenPayment, updateSalesDeal, verifyPayment,
 } from '../../../services/sales';
 import { createLog, uploadProof } from '../../../services/workflow';
@@ -874,12 +874,21 @@ export function SalesDealDetailPage() {
                 f.inp('rf.name', 'Beneficiary name', { default: d.buyerName }),
                 f.inp('rf.acc', 'Bank account number'),
                 f.inp('rf.ifsc', 'IFSC code'),
+                f.inp('rf.utr', 'Transfer reference', { required: true, placeholder: 'UTR from the completed return transfer' }),
               ],
               actions: [
                 btn('Process Refund', () => {
-                  if (!f.need({ 'rf.reason': 'Reason is required', 'rf.acc': 'Account number is required', 'rf.ifsc': 'IFSC is required' })) return;
+                  if (!f.need({ 'rf.reason': 'Reason is required', 'rf.acc': 'Account number is required', 'rf.ifsc': 'IFSC is required', 'rf.utr': 'Transfer reference is required' })) return;
                   if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(f.str('rf.ifsc').toUpperCase())) return void f.fail('rf.ifsc', 'Invalid IFSC code');
-                  void saveWf({ refund: { name: f.str('rf.name', d.buyerName), reason: f.str('rf.reason'), accountLast4: f.str('rf.acc').slice(-4), ifsc: f.str('rf.ifsc').toUpperCase(), amount: tokenAmount, requestedAt: new Date().toISOString() } }, '💸 Refund request recorded').then(() => f.clear('rf.'));
+                  if (f.str('rf.utr').trim().length < 4) return void f.fail('rf.utr', 'Enter the reference from the completed transfer');
+                  void (async () => {
+                    const paid = (await listPayments({ dealId: d.id, status: 'paid', type: 'token' })).find((payment) => payment.status === 'paid');
+                    if (!paid) return void f.fail('rf.utr', 'There is no paid token payment to refund');
+                    const reference = f.str('rf.utr').trim();
+                    await recordVerifiedRefund(paid.id, { transactionReference: reference, notes: f.str('rf.reason') });
+                    await saveWf({ refund: { name: f.str('rf.name', d.buyerName), reason: f.str('rf.reason'), accountLast4: f.str('rf.acc').slice(-4), ifsc: f.str('rf.ifsc').toUpperCase(), amount: tokenAmount, transactionReference: reference, requestedAt: new Date().toISOString() } }, 'Refund recorded for transfer ' + reference);
+                    f.clear('rf.');
+                  })();
                 }, 'primary'),
               ],
             }

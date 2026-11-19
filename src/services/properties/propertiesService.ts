@@ -168,10 +168,10 @@ export async function getBulkTemplate(mode: 'empty' | 'valued', limit = 100): Pr
   };
 }
 
-/** GET /api/v1/admin/properties/import-jobs */
+/** GET /api/v1/admin/properties/import-jobs (all pages; backend max 50/page) */
 export async function listImportJobs(signal?: AbortSignal): Promise<ImportJob[]> {
-  const r = await apiRequestEnvelope<Raw[]>('/v1/admin/properties/import-jobs', { query: { limit: 20 }, signal });
-  return arr(r.data).map((j) => mapImportJob(asRaw(j)));
+  const result = await fetchAllPages('/v1/admin/properties/import-jobs', mapImportJob, { sort: 'newest' }, signal, 20);
+  return result.items;
 }
 
 /** POST /api/v1/admin/import-jobs/:id/undo */

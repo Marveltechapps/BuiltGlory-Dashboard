@@ -28,7 +28,17 @@ export function MasterSheetTab() {
   const jobs = q.data ?? [];
   const imp = jobs.find((j) => j.id === sel);
   const errors = jobs.flatMap((j) => j.errors.map((e) => ({ ...e, job: j })));
-  const loadingText = q.isPending ? 'Loading…' : q.isError ? 'Could not load import history' : '';
+  if (q.isPending) return <RecordDetailView state="loading" isPage />;
+  if (q.isError) {
+    return (
+      <RecordDetailView
+        state="error"
+        isPage
+        onRetry={() => void q.refetch()}
+        errorTitle="Could not load import history"
+      />
+    );
+  }
 
   return (
     <RecordDetailView
@@ -67,8 +77,7 @@ export function MasterSheetTab() {
                 : null,
             ],
           })),
-          empty: jobs.length ? '' : loadingText || 'No imports yet',
-          actions: q.isError ? [btn('Retry', () => void q.refetch())] : [],
+          empty: jobs.length ? '' : 'No imports yet',
         },
         imp
           ? {
@@ -85,7 +94,7 @@ export function MasterSheetTab() {
         {
           title: 'Import Error Log',
           rows: errors.map((e, i) => ({ key: e.job.id + i, title: 'Row ' + e.row + ' · ' + (e.field || e.job.referenceId), sub: e.message + ' · ' + date(e.job.createdAt) })),
-          empty: errors.length ? '' : loadingText || 'No import errors',
+          empty: errors.length ? '' : 'No import errors',
           actions: [
             btn('Export Error Log', () => {
               if (!errors.length) return toast('No import errors to export');

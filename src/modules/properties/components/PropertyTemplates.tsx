@@ -19,10 +19,11 @@ const COLS = ['Property ID', 'Title', 'Type', 'Price (₹)', 'Locality', 'City',
 const KEYS = ['title', 'type', 'price', 'locality', 'city', 'status'] as const;
 const STATUSES = ['available', 'sold', 'reserved', 'under_construction', 'draft'];
 const TYPES = new Set(FILTER_TYPES.map(([k]) => k));
-const SAMPLE: TplRow = { __sample: true };
 
 const s = (v: unknown) => (v == null ? '' : String(v));
-const rowId = (r: TplRow, i: number) => s(r.propertyId) || s(r.referenceId) || (r.__sample ? 'SAMPLE-1' : 'ROW-' + (i + 1));
+const rowId = (r: TplRow, i: number) => s(r.propertyId) || s(r.referenceId) || 'ROW-' + (i + 1);
+const blankRow = (fields: Array<{ key: string }> | undefined): TplRow =>
+  Object.fromEntries((fields ?? []).map((f) => [f.key, '']).concat([['status', 'draft']]));
 
 type Vals = Record<(typeof KEYS)[number], string>;
 
@@ -45,7 +46,9 @@ export function PropertyTemplates() {
   const tq = useQuery({ queryKey: ['property-template', mode], queryFn: () => getBulkTemplate(mode, 100) });
 
   const data = tq.data;
-  const baseRows: TplRow[] = mode === 'empty' ? (data?.rows.length ? data.rows : [SAMPLE]) : data?.rows ?? [];
+  const baseRows: TplRow[] = mode === 'empty'
+    ? (data?.rows.length ? data.rows : data ? [blankRow(data.fields)] : [])
+    : data?.rows ?? [];
   const rows = mode === 'empty' ? baseRows : baseRows.filter((r) => (typeF === 'all' || s(r.type) === typeF) && matches(q, s(r.title) + ' ' + s(r.locality) + ' ' + s(r.city)));
   const dirtyIds = Object.keys(edits);
   const valueOf = (r: TplRow, id: string, k: string) => edits[id]?.[k] ?? s(r[k]);
@@ -105,7 +108,7 @@ export function PropertyTemplates() {
   const download = () => {
     const keys = data?.fields.map((f) => f.key).filter(Boolean) ?? [];
     if (!keys.length) return toast('Template is not loaded yet');
-    const body = baseRows.filter((r) => !r.__sample).map((r, i) => keys.map((k) => {
+    const body = baseRows.map((r, i) => keys.map((k) => {
       const id = rowId(r, i);
       const v = edits[id]?.[k] ?? r[k];
       return v as string | number | boolean | undefined;
@@ -187,7 +190,7 @@ export function PropertyTemplates() {
                       <input
                         className={styles.sheetInput}
                         value={valueOf(r, id, k)}
-                        placeholder={r.__sample ? k : ''}
+                        placeholder={mode === 'empty' && !s(r.propertyId) ? k : ''}
                         aria-label={k + ' for ' + id}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -203,7 +206,10 @@ export function PropertyTemplates() {
           </tbody>
         </table>
       </div>
-      {mode === 'empty' && <p className={styles.note}>Replace this sample row with real property details</p>}
+      {mode === 'empty' && <p className={styles.note}>Fill the blank template row with real property details, then save to create listings.</p>}
+      {mode === 'valued' && (data?.rows?.length ?? 0) >= 100 && (
+        <p className={styles.note}>Showing the latest 100 properties from the bulk-template API.</p>
+      )}
     </PageStack>
   );
 }

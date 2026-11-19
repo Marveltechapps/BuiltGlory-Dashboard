@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { btn } from '../../../components/detail/sections';
 import { useFormModal } from '../../../components/ui/FormModal';
 import { RecordDetailView } from '../../../components/ui/RecordDetailView';
@@ -7,12 +8,11 @@ import { useDesigners } from '../../../hooks/useTeam';
 import { formatApiError } from '../../../lib/apiClient';
 import { badge, date, num, price, todayIso } from '../../../lib/format';
 import { inviteAdmin, removeAdmin, updateAdmin } from '../../../services/admins';
+import { listBoostOrders, updateBoostOrder } from '../../../services/boostOrders';
 import { askConfirm, toast } from '../../../store/uiStore';
 import type { Coupon, SettingsTools } from '../../../types/settings';
-import { CONFIG_RECORDS, useAdminSettings, useToolsContent } from '../hooks/useToolsContent';
+import { useAdminSettings } from '../hooks/useToolsContent';
 import { uid } from './toolsShared';
-
-interface BoostOrder { id: string; propertyId: string; property: string; plan: string; started: string; expires: string; status: string }
 
 const D = 864e5;
 const s = (v: unknown) => (v == null ? '' : String(v));
@@ -20,33 +20,40 @@ const amountOf = (label: string) => Number(String(label).replace(/[^\d.]/g, ''))
 
 /**
  * Tools › Pricing — boost plans, interior packages and coupons live in admin settings
- * (`PATCH /admin/settings` → tools.*); boost orders in the `tools-operational-config` CMS record;
+ * (`PATCH /admin/settings` → tools.*); boost orders from GET/PATCH `/admin/boost-orders`;
  * designers are admin accounts (GET /admin/designers, POST /admin/admins/invite, PATCH/DELETE /admin/admins/:id).
  */
 export function PricingTab() {
   const f = useFormFields();
   const modal = useFormModal();
   const st = useAdminSettings();
-  const tc = useToolsContent();
+  const ordersQ = useQuery({ queryKey: ['boost-orders'], queryFn: ({ signal }) => listBoostOrders({}, signal) });
   const des = useDesigners();
   const desKeys = [['designers']];
+  const orderKeys = [['boost-orders']];
   const addDesigner = useRefreshingMutation((b: Parameters<typeof inviteAdmin>[0]) => inviteAdmin(b), desKeys);
   const setAvail = useRefreshingMutation((v: { id: string; on: boolean }) => updateAdmin(v.id, { isAvailable: v.on }), desKeys);
   const delDesigner = useRefreshingMutation((id: string) => removeAdmin(id), desKeys);
+  const renewOrder = useRefreshingMutation(
+    (v: { id: string; expiresAt: string }) => updateBoostOrder(v.id, { expiresAt: v.expiresAt, status: 'active' }),
+    orderKeys,
+  );
 
-  const loading = st.q.isPending || tc.q.isPending;
+  const loading = st.q.isPending || ordersQ.isPending;
   if (loading) return <RecordDetailView state="loading" isPage />;
   const tools: SettingsTools = st.settings?.tools ?? { boostPlans: [], interiorPackages: [], coupons: [] };
   const plans = tools.boostPlans;
   const pkgs = tools.interiorPackages;
   const coupons = tools.coupons;
-  const meta = tc.meta(CONFIG_RECORDS.toolsConfig!.slug);
-  const orders = (tc.list<BoostOrder>(CONFIG_RECORDS.toolsConfig!.slug, 'boostOrders') ?? []).map((o) => ({ ...o, property: s(o.property), plan: s(o.plan), started: s(o.started), expires: s(o.expires) }));
-  const saveTools = (patch: Partial<SettingsTools>, msg: string) => st.save.mutateAsync({ tools: { ...tools, ...patch } }).then(() => { toast(msg); return true; }).catch(() => false);
-  const saveOrders = (next: BoostOrder[], msg: string) => tc.save.mutateAsync({ rec: CONFIG_RECORDS.toolsConfig!, metadata: { ...meta, boostOrders: next } }).then(() => toast(msg)).catch(() => undefined);
-  const revenue = orders.reduce((t, o) => t + amountOf(plans.find((p) => p.name === o.plan)?.priceLabel ?? ''), 0);
+  const orders = ordersQ.data?.items ?? [];
+  const saveTools = (patch: Partial<SettingsTools>, msg: string) =>
+    st.save.mutateAsync({ tools: { ...tools, ...patch } }).then(() => { toast(msg); return true; }).catch((e) => {
+      toast('⚠️ ' + formatApiError(e));
+      return false;
+    });
+  const revenue = orders.reduce((t, o) => t + (o.amount || amountOf(o.priceLabel || plans.find((p) => p.id === o.planId || p.name === o.planName)?.priceLabel || '')), 0);
   const settingsDenied = st.q.isError;
-  const err = st.save.error || tc.save.error;
+  const err = st.save.error || renewOrder.error;
 
   return (
     <RecordDetailView
@@ -57,7 +64,7 @@ export function PricingTab() {
       single
       banners={[
         settingsDenied ? { text: '⚠️ Could not load admin settings (boost plans, packages, coupons): ' + formatApiError(st.q.error), tone: 'error', actions: [{ label: 'Retry', onClick: () => void st.q.refetch() }] } : null,
-        tc.q.isError ? { text: '⚠️ Could not load boost orders (app content): ' + formatApiError(tc.q.error), tone: 'error', actions: [{ label: 'Retry', onClick: () => void tc.q.refetch() }] } : null,
+        ordersQ.isError ? { text: '⚠️ Could not load boost orders: ' + formatApiError(ordersQ.error), tone: 'error', actions: [{ label: 'Retry', onClick: () => void ordersQ.refetch() }] } : null,
         err ? { text: '⚠️ Last change was not saved: ' + formatApiError(err), tone: 'error' } : null,
       ]}
       main={[
@@ -104,16 +111,28 @@ export function PricingTab() {
         {
           title: 'Active Boost Orders',
           rows: orders.map((o) => {
-            const left = Math.ceil((Date.parse(o.expires) - Date.now()) / D);
+            const left = Math.ceil((Date.parse(o.expiresAt) - Date.now()) / D);
             return {
               key: o.id,
-              title: o.property,
-              sub: o.plan + ' · Started ' + date(o.started) + ' · Expires ' + date(o.expires),
-              badges: [badge(left > 0 ? left + ' days left' : 'Expired', left > 3 ? 'green' : left > 0 ? 'amber' : 'red')],
-              actions: [{ label: 'Renew', onClick: () => void saveOrders(orders.map((x) => (x.id === o.id ? { ...x, expires: new Date(Math.max(Date.now(), Date.parse(o.expires) || 0) + 15 * D).toISOString(), status: 'active' } : x)), '🔁 Boost renewed for 15 days') }],
+              title: o.propertyTitle,
+              sub: (o.planName || o.planId) + ' · Started ' + date(o.startsAt) + ' · Expires ' + date(o.expiresAt),
+              badges: [
+                badge(o.status, o.status === 'active' ? 'green' : o.status === 'expired' || o.status === 'cancelled' ? 'red' : 'amber'),
+                badge(left > 0 ? left + ' days left' : 'Expired', left > 3 ? 'green' : left > 0 ? 'amber' : 'red'),
+              ],
+              actions: [{
+                label: 'Renew',
+                onClick: () => {
+                  const expiresAt = new Date(Math.max(Date.now(), Date.parse(o.expiresAt) || 0) + 15 * D).toISOString();
+                  renewOrder.mutate(
+                    { id: o.id, expiresAt },
+                    { onSuccess: () => toast('🔁 Boost renewed for 15 days'), onError: (e) => toast('⚠️ ' + formatApiError(e)) },
+                  );
+                },
+              }],
             };
           }),
-          empty: orders.length ? '' : tc.q.isError ? 'Unavailable' : 'No boost orders recorded',
+          empty: orders.length ? '' : ordersQ.isError ? 'Unavailable' : 'No boost orders recorded',
         },
         {
           title: 'Interior Design Packages',

@@ -165,3 +165,8 @@ export async function listPayments(query: { dealId?: string; status?: string; ty
 export async function verifyPayment(id: string, body: { decision: 'paid' | 'rejected'; notes?: string }) {
   return mapPayment(asRaw(await apiRequest<Raw>(`/v1/admin/payments/${id}/verify`, { method: 'PATCH', body })));
 }
+
+/** POST /api/v1/admin/payments/:paymentId/refund — records one verified return transfer. */
+export async function recordVerifiedRefund(id: string, body: { transactionReference: string; notes?: string }) {
+  return mapPayment(asRaw(await apiRequest<Raw>(`/v1/admin/payments/${id}/refund`, { method: 'POST', body })));
+}

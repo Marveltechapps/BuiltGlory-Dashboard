@@ -9,6 +9,7 @@ import { useEditLock } from '../../../hooks/useEditLock';
 import { useLiveSupport } from '../../../hooks/useLiveSupport';
 import { useFormFields } from '../../../hooks/useFormFields';
 import { useRefreshingMutation } from '../../../hooks/useRefreshingMutation';
+import { useSession } from '../../../hooks/useSession';
 import { useSalesTeam } from '../../../hooks/useTeam';
 import { useWorkflowSections } from '../../../hooks/useWorkflowSections';
 import { dateTime, fillVars, initials, relativeLong, statusLabel } from '../../../lib/format';
@@ -29,7 +30,10 @@ export function SupportTicketDetailPage() {
   const modal = useFormModal();
   const q = useQuery({ queryKey: ['support-ticket', id], queryFn: ({ signal }) => getTicket(id, signal), retry: false });
   const t = q.data;
-  const adminsQ = useQuery({ queryKey: ['admins'], queryFn: ({ signal }) => listAdmins(signal), retry: false });
+  // Assignee directory: sales-team is readable by staff; full admin list needs admin.access.manage.
+  const { can } = useSession();
+  const canListAdmins = can('admin.access.manage');
+  const adminsQ = useQuery({ queryKey: ['admins'], queryFn: ({ signal }) => listAdmins(signal), retry: false, enabled: canListAdmins });
   const { team } = useSalesTeam();
   const tplQ = useQuery({ queryKey: ['message-templates'], queryFn: ({ signal }) => listTemplates(signal) });
   const wf = useWorkflowSections('support_ticket', id, f, t?.createdAt);
@@ -60,8 +64,10 @@ export function SupportTicketDetailPage() {
   const age = (Date.now() - Date.parse(t.createdAt)) / H;
   const replied = hasAdminReply(t);
   const firstReply = t.responses.find((r) => r.responderType !== 'customer');
-  // Assignees: admin accounts when the session may list them, otherwise the sales team.
-  const people = adminsQ.data?.length ? adminsQ.data.map((a) => ({ id: a.id, name: a.name, role: a.role })) : team.map((m) => ({ id: m.id, name: m.name, role: m.role }));
+  // Assignees: prefer admin directory when permitted; otherwise sales-team staff list.
+  const people = (canListAdmins && adminsQ.data?.length
+    ? adminsQ.data.map((a) => ({ id: a.id, name: a.name, role: a.role }))
+    : team.map((m) => ({ id: m.id, name: m.name, role: m.role })));
   const nameOf = (pid: string | null) => (pid ? people.find((p) => p.id === pid)?.name : undefined);
   const assigned = t.assignedToName || nameOf(t.assignedTo) || (t.assignedTo ? 'Assigned' : 'Unassigned');
   const tpls = tplQ.data ?? [];

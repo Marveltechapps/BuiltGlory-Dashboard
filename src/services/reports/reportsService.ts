@@ -1,6 +1,16 @@
 import { apiRequest, apiRequestEnvelope } from '../../lib/apiClient';
 import { arr, asRaw, idOf, iso, num, str, type Raw } from '../../lib/raw';
-import type { AcquisitionAnalytics, ExportFormat, ExportReportType, ReportExport, RevenueAnalytics, SalesAnalytics } from '../../types/reports';
+import type {
+  AcquisitionAnalytics,
+  ExportFormat,
+  ExportReportType,
+  ReportExport,
+  ReportSchedule,
+  RevenueAnalytics,
+  SalesAnalytics,
+  ScheduleFrequency,
+  ScheduleReportType,
+} from '../../types/reports';
 
 export interface AnalyticsQuery {
   from?: string;
@@ -92,6 +102,42 @@ function mapExport(raw: Raw): ReportExport {
     fileName: str(raw.fileName) || null,
     rowCount: raw.rowCount == null ? null : n(raw.rowCount),
   };
+}
+
+function mapSchedule(raw: Raw): ReportSchedule {
+  return {
+    id: idOf(raw),
+    referenceId: str(raw.referenceId, idOf(raw)),
+    name: str(raw.name),
+    status: str(raw.status, 'active'),
+    reportType: str(raw.reportType, 'overview') as ScheduleReportType,
+    format: str(raw.format, 'xlsx') as ExportFormat,
+    frequency: str(raw.frequency, 'weekly') as ScheduleFrequency,
+    timezone: str(raw.timezone, 'Asia/Kolkata'),
+    recipients: arr(raw.recipients).map((x) => str(x)).filter(Boolean),
+    nextRunAt: iso(raw.nextRunAt),
+    createdAt: iso(raw.createdAt) ?? '',
+  };
+}
+
+/** GET /api/v1/admin/reports/schedules */
+export async function listReportSchedules(signal?: AbortSignal) {
+  const r = await apiRequestEnvelope<Raw[]>('/v1/admin/reports/schedules', { query: { limit: 50 }, signal });
+  return arr(r.data).map((x) => mapSchedule(asRaw(x)));
+}
+
+/** POST /api/v1/admin/reports/schedules */
+export async function createReportSchedule(body: {
+  name: string;
+  reportType: ScheduleReportType;
+  format?: ExportFormat;
+  frequency: ScheduleFrequency;
+  timezone?: string;
+  recipients: string[];
+  filters?: Record<string, unknown>;
+  nextRunAt?: string;
+}) {
+  return mapSchedule(asRaw(await apiRequest<Raw>('/v1/admin/reports/schedules', { method: 'POST', body })));
 }
 
 /** GET /api/v1/admin/reports/exports?limit=20 */

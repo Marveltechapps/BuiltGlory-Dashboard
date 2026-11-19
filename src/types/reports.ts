@@ -40,3 +40,21 @@ export interface ReportExport {
 
 export type ExportReportType = 'properties' | 'users' | 'sales' | 'sales_deals' | 'acquisitions';
 export type ExportFormat = 'csv' | 'xlsx' | 'pdf';
+
+/** `GET/POST /api/v1/admin/reports/schedules` */
+export type ScheduleReportType = 'overview' | 'sales' | 'acquisition' | 'revenue' | 'users' | 'properties';
+export type ScheduleFrequency = 'daily' | 'weekly' | 'monthly';
+
+export interface ReportSchedule {
+  id: string;
+  referenceId: string;
+  name: string;
+  status: string;
+  reportType: ScheduleReportType | string;
+  format: ExportFormat | string;
+  frequency: ScheduleFrequency | string;
+  timezone: string;
+  recipients: string[];
+  nextRunAt: string | null;
+  createdAt: string;
+}

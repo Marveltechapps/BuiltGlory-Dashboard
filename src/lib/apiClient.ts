@@ -1,8 +1,12 @@
 import { useAuthStore } from '../store/authStore';
+import { apiUrl } from './runtimeConfig';
 
 /**
- * Same-origin fetch wrapper. `path` is relative to `/api`, so services pass `/v1/admin/...`
- * and the browser requests `/api/v1/admin/...` (the Vite dev server proxies `/api`).
+ * Fetch wrapper. `path` is relative to `/api`, so services pass `/v1/admin/...`
+ * and the browser requests `/api/v1/admin/...`.
+ *
+ * Default: same-origin (Vite proxies in dev; reverse proxy in production).
+ * Optional: set `VITE_API_URL=https://api…` for a split HTTPS API host.
  *
  * The backend wraps every success in `{ data, meta }` and every error in
  * `{ error: { code, message, details }, meta }`. `apiRequest` unwraps `data`;
@@ -103,10 +107,11 @@ async function refreshSession(): Promise<boolean> {
   const session = useAuthStore.getState().session;
   if (!session?.refreshToken) return false;
   if (!refreshing) {
-    refreshing = fetch('/api/v1/auth/refresh', {
+    refreshing = fetch(apiUrl('/api/v1/auth/refresh'), {
       method: 'POST',
       headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken: session.refreshToken }),
+      credentials: 'include',
     })
       .then(async (res) => {
         if (!res.ok) return false;
@@ -133,8 +138,14 @@ async function send(path: string, options: RequestOptions, retried: boolean): Pr
     headers['Content-Type'] = 'application/json';
     body = JSON.stringify(options.body);
   }
-  const url = `/api/${path.replace(/^\//, '')}${buildQuery(options.query)}`;
-  const response = await fetch(url, { method: options.method ?? 'GET', headers, body, signal: options.signal });
+  const url = apiUrl(`/api/${path.replace(/^\//, '')}${buildQuery(options.query)}`);
+  const response = await fetch(url, {
+    method: options.method ?? 'GET',
+    headers,
+    body,
+    signal: options.signal,
+    credentials: 'include',
+  });
   if (response.status === 401 && token && !retried) {
     if (adminIdleExpired()) {
       useAuthStore.getState().expire();

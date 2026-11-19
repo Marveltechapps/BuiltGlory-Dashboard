@@ -11,10 +11,10 @@ import { formatApiError, saveBlob } from '../../../lib/apiClient';
 import { acqStage, badge, date, dateTime, initials, price, relativeLong, salesStage, statusLabel, typeLabel } from '../../../lib/format';
 import { listAcquisitions } from '../../../services/acquisitions';
 import { listSellRequests } from '../../../services/enquiries';
-import { countRecords, createReportExport, downloadReportExport, getAcquisitionAnalytics, getRevenueAnalytics, getSalesAnalytics, listReportExports, type CountPath } from '../../../services/reports';
+import { countRecords, createReportExport, createReportSchedule, downloadReportExport, getAcquisitionAnalytics, getRevenueAnalytics, getSalesAnalytics, listReportExports, listReportSchedules, type CountPath } from '../../../services/reports';
 import { listSalesDeals } from '../../../services/sales';
 import { toast } from '../../../store/uiStore';
-import type { ExportFormat, ExportReportType, ReportExport } from '../../../types/reports';
+import type { ExportFormat, ExportReportType, ReportExport, ScheduleFrequency, ScheduleReportType } from '../../../types/reports';
 import styles from './Reports.module.css';
 
 type Tab = 'sales' | 'acquisition' | 'revenue' | 'export';
@@ -436,20 +436,36 @@ const FIELD_KEYS: Record<string, string> = { ID: 'id', Title: 'title', Price: 'p
 const FORMATS: Array<[string, ExportFormat]> = [['CSV', 'csv'], ['Excel', 'xlsx'], ['PDF', 'pdf']];
 const fmtName = (f: string) => (f === 'xlsx' || f === 'excel' ? 'Excel' : f.toUpperCase());
 
+const SCHEDULE_TYPES: Array<[string, ScheduleReportType]> = [
+  ['Overview', 'overview'], ['Sales', 'sales'], ['Acquisition', 'acquisition'], ['Revenue', 'revenue'], ['Users', 'users'], ['Properties', 'properties'],
+];
+const FREQUENCIES: Array<[string, ScheduleFrequency]> = [['Daily', 'daily'], ['Weekly', 'weekly'], ['Monthly', 'monthly']];
+
 function ExportView() {
   const qc = useQueryClient();
   const { vw } = useViewport();
-  const { admin } = useSession();
+  const { admin, can } = useSession();
+  const canSchedules = can('audit.read');
   const [dataType, setDataType] = useState('Properties');
   const [format, setFormat] = useState<ExportFormat>('csv');
   const [email, setEmail] = useState(admin?.email || '');
   const [fields, setFields] = useState<Record<string, boolean>>({ ID: true, Title: true, Price: true, Status: true, City: true, Created: false });
   const [busy, setBusy] = useState('');
+  const [schedName, setSchedName] = useState('');
+  const [schedType, setSchedType] = useState<ScheduleReportType>('sales');
+  const [schedFreq, setSchedFreq] = useState<ScheduleFrequency>('weekly');
+  const [schedFormat, setSchedFormat] = useState<ExportFormat>('xlsx');
+  const [schedEmail, setSchedEmail] = useState(admin?.email || '');
   const counts = useQueries({ queries: QUICK.map((x) => ({ queryKey: ['record-count', x.path], queryFn: ({ signal }: { signal: AbortSignal }) => countRecords(x.path, signal), staleTime: 60_000 })) });
   const jobsQ = useQuery({
     queryKey: ['report-exports'],
     queryFn: ({ signal }) => listReportExports(signal),
     refetchInterval: (query) => ((query.state.data ?? []).some((j) => ['queued', 'processing'].includes(j.status)) ? 5000 : false),
+  });
+  const schedulesQ = useQuery({
+    queryKey: ['report-schedules'],
+    queryFn: ({ signal }) => listReportSchedules(signal),
+    enabled: canSchedules,
   });
 
   const queue = async (reportType: ExportReportType, fmt: ExportFormat, extra: { fields?: string[]; deliveryEmail?: string | null; estimatedRows?: number } = {}) => {
@@ -488,8 +504,31 @@ function ExportView() {
     void queue(rt, format, { fields: chosen.map((k) => FIELD_KEYS[k]!), deliveryEmail: email || null, estimatedRows: idx >= 0 ? counts[idx]?.data : undefined });
   };
 
+  const createSchedule = async () => {
+    if (!schedName.trim()) return toast('Schedule name is required');
+    if (!/^\S+@\S+\.\S+$/.test(schedEmail.trim())) return toast('Enter a valid recipient email');
+    setBusy('schedule');
+    try {
+      const job = await createReportSchedule({
+        name: schedName.trim(),
+        reportType: schedType,
+        format: schedFormat,
+        frequency: schedFreq,
+        recipients: [schedEmail.trim()],
+      });
+      toast('📅 Schedule created' + (job.referenceId ? ' · ' + job.referenceId : ''));
+      setSchedName('');
+      void qc.invalidateQueries({ queryKey: ['report-schedules'] });
+    } catch (e) {
+      toast('⚠️ ' + formatApiError(e));
+    } finally {
+      setBusy('');
+    }
+  };
+
   const stB = (s: string) => (s === 'completed' ? badge('Ready', 'green') : s === 'queued' ? badge('Queued', 'amber') : s === 'processing' ? badge('Processing', 'amber') : s === 'failed' ? badge('Failed', 'red') : badge('Expired', 'muted'));
   const jobs = jobsQ.data ?? [];
+  const schedules = schedulesQ.data ?? [];
   const kpiCols = vw >= 1280 ? 'repeat(4, minmax(0, 1fr))' : vw >= 640 ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)';
 
   return (
@@ -551,6 +590,65 @@ function ExportView() {
         <p className={styles.info}>This will be processed in background and emailed to you when ready.</p>
         <button type="button" className={styles.primary} disabled={!!busy} onClick={submit}>{busy && !busy.startsWith('dl') ? 'Requesting…' : 'Request Export'}</button>
       </div>
+      {canSchedules && (
+        <div className={styles.panel}>
+          <p style={{ fontWeight: 600 }}>Scheduled Exports</p>
+          <p className={styles.small}>Create recurring report jobs via POST /admin/reports/schedules</p>
+          <div className={styles.formGrid} style={{ gridTemplateColumns: vw >= 1024 ? 'repeat(4, minmax(0, 1fr))' : 'minmax(0, 1fr)', marginTop: 12 }}>
+            <label className={styles.label}>
+              Name
+              <input className={styles.input} value={schedName} onChange={(e) => setSchedName(e.target.value)} placeholder="Weekly sales" style={{ padding: '0 12px' }} />
+            </label>
+            <label className={styles.label}>
+              Report
+              <select className={styles.input} value={schedType} onChange={(e) => setSchedType(e.target.value as ScheduleReportType)}>
+                {SCHEDULE_TYPES.map(([label, value]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </label>
+            <label className={styles.label}>
+              Frequency
+              <select className={styles.input} value={schedFreq} onChange={(e) => setSchedFreq(e.target.value as ScheduleFrequency)}>
+                {FREQUENCIES.map(([label, value]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </label>
+            <label className={styles.label}>
+              Format
+              <select className={styles.input} value={schedFormat} onChange={(e) => setSchedFormat(e.target.value as ExportFormat)}>
+                {FORMATS.map(([label, value]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </label>
+            <label className={styles.label}>
+              Recipient email
+              <input className={styles.input} type="email" value={schedEmail} onChange={(e) => setSchedEmail(e.target.value)} style={{ padding: '0 12px' }} />
+            </label>
+          </div>
+          <button type="button" className={styles.primary} style={{ marginTop: 12 }} disabled={busy === 'schedule'} onClick={() => void createSchedule()}>
+            {busy === 'schedule' ? 'Creating…' : 'Create Schedule'}
+          </button>
+          <div style={{ marginTop: 16 }}>
+            <DataTable
+              columns={['Name', 'Report', 'Frequency', 'Format', 'Next run', 'Recipients', 'Status']}
+              state={schedulesQ.isPending ? 'loading' : schedulesQ.isError ? 'error' : schedules.length ? 'normal' : 'empty'}
+              onRetry={() => void schedulesQ.refetch()}
+              errorTitle="Could not load schedules"
+              empty={{ icon: 'calendar', title: 'No schedules yet', text: 'Create a recurring export above. Active schedules appear here from the backend.' }}
+              minWidth="820px"
+              rows={schedules.map((s) => ({
+                key: s.id || s.referenceId,
+                cells: [
+                  { title: s.name, strong: true, sub: s.referenceId },
+                  { title: statusLabel(s.reportType) },
+                  { title: statusLabel(s.frequency) },
+                  { title: fmtName(s.format) },
+                  { title: dateTime(s.nextRunAt) || '—', muted: true },
+                  { title: s.recipients.join(', ') || '—', muted: true },
+                  { badges: [badge(s.status === 'active' ? 'Active' : statusLabel(s.status), s.status === 'active' ? 'green' : 'muted')] },
+                ],
+              }))}
+            />
+          </div>
+        </div>
+      )}
       <div className={styles.tableBlock}>
         <h3 style={{ fontWeight: 600 }}>Recent Exports</h3>
         <DataTable

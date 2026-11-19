@@ -2,13 +2,18 @@ import { useEffect, useRef } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import { useAuthStore } from '../store/authStore';
 import type { Raw } from './raw';
+import { socketOrigin } from './runtimeConfig';
 
 type Ack = { ok?: boolean; ticket?: Raw; error?: string };
 
 let socket: Socket | null = null;
 let socketToken: string | null = null;
 
-/** Same-origin `/chat` socket. Vite proxies `/socket.io` to the API in dev. */
+/**
+ * `/chat` Socket.IO namespace.
+ * Default: same-origin (Vite proxies `/socket.io` in dev; reverse proxy in prod).
+ * Split host: set `VITE_SOCKET_URL` or `VITE_API_URL` to an HTTPS API origin.
+ */
 export function chatSocket(): Socket | null {
   const token = useAuthStore.getState().session?.accessToken ?? null;
   if (!token) {
@@ -20,10 +25,13 @@ export function chatSocket(): Socket | null {
   if (socket && socketToken === token) return socket;
   socket?.disconnect();
   socketToken = token;
-  socket = io('/chat', {
+  const origin = socketOrigin();
+  socket = io(origin ? `${origin}/chat` : '/chat', {
     auth: { token },
+    path: '/socket.io',
     transports: ['websocket', 'polling'],
     autoConnect: true,
+    withCredentials: true,
   });
   return socket;
 }

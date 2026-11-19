@@ -94,7 +94,9 @@ export function AdminLayout() {
         resource === 'visits' ? ['visits', 'visit']
           : resource === 'enquiries' ? ['buy-enquiries', 'buy-enquiry', 'overview']
             : resource === 'deals' ? ['sales-deals', 'sales-deal', 'overview']
-              : [resource]
+              : resource === 'locations' ? ['locations']
+                : resource === 'boostOrders' ? ['boost-orders']
+                  : [resource]
       ));
       if (!keys.length) return;
       keys.forEach((key) => { void qc.invalidateQueries({ queryKey: [key] }); });

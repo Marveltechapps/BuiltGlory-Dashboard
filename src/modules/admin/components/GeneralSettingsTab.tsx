@@ -3,7 +3,8 @@ import { btn } from '../../../components/detail/sections';
 import { RecordDetailView } from '../../../components/ui/RecordDetailView';
 import { useFormFields } from '../../../hooks/useFormFields';
 import { useRefreshingMutation } from '../../../hooks/useRefreshingMutation';
-import { saveBlob } from '../../../lib/apiClient';
+import { useSession } from '../../../hooks/useSession';
+import { formatApiError, saveBlob } from '../../../lib/apiClient';
 import { listAdmins } from '../../../services/admins';
 import { getSettings, updateSettings } from '../../../services/settings';
 import { askConfirm, toast } from '../../../store/uiStore';
@@ -24,8 +25,10 @@ const opts = <T extends string>(list: Array<[T, string]>) => list.map(([value, l
 /** Admin › Settings — GET / PATCH /admin/settings (organization, display, app, sla, alerts, notifications). */
 export function GeneralSettingsTab() {
   const f = useFormFields();
+  const { can } = useSession();
+  const canListAdmins = can('admin.access.manage');
   const q = useQuery({ queryKey: ['admin-settings'], queryFn: ({ signal }) => getSettings(signal), retry: false });
-  const adminsQ = useQuery({ queryKey: ['admins'], queryFn: ({ signal }) => listAdmins(signal), retry: false });
+  const adminsQ = useQuery({ queryKey: ['admins'], queryFn: ({ signal }) => listAdmins(signal), retry: false, enabled: canListAdmins });
   const save = useRefreshingMutation((b: AdminSettingsPatch) => updateSettings(b), [['admin-settings']]);
   const st = q.data;
   if (!st) return <RecordDetailView state={q.isError ? 'error' : 'loading'} isPage onRetry={() => void q.refetch()} errorTitle="Could not load settings" />;
@@ -48,7 +51,15 @@ export function GeneralSettingsTab() {
       title="Settings"
       meta="Company, display, app and SLA configuration"
       single
-      banners={[st.app.maintenance ? { text: 'App is in maintenance mode — users cannot access the app.', tone: 'error' } : null]}
+      banners={[
+        st.app.maintenance ? { text: 'App is in maintenance mode — users cannot access the app.', tone: 'error' } : null,
+        canListAdmins && adminsQ.isError
+          ? { text: '⚠️ Could not load admin accounts for SLA escalators: ' + formatApiError(adminsQ.error), tone: 'error', actions: [{ label: 'Retry', onClick: () => void adminsQ.refetch() }] }
+          : null,
+        !canListAdmins
+          ? { text: 'Escalator assignment needs Access Control permission. Current SLA contacts still save by email.', tone: 'muted' }
+          : null,
+      ]}
       main={[
         {
           title: 'Company Information',
