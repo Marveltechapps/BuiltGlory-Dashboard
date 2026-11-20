@@ -16,6 +16,7 @@ import { askConfirm, toast } from '../../../store/uiStore';
 import type { Property, PropertyPayload } from '../../../types/properties';
 import { PROPERTY_STATUS, areaOf, bhkOf, displayStatus, reraOf } from '../constants';
 import { usePropertyActions } from '../hooks/useProperties';
+import { PropertyMap } from '../../../components/maps/PropertyMap';
 
 const AMEN = ['Swimming Pool', 'Gym', 'Clubhouse', 'Power Backup', 'Lift', 'Security', 'CCTV', 'Garden', 'Covered Parking', 'EV Charging'];
 const NEARBY_ICON: Record<string, string> = { school: '🏫', hospital: '🏥', mall: '🛍️', it_park: '💻', airport: '✈️', highway: '🛣️', restaurant: '🍽️', metro: '🚇' };
@@ -268,7 +269,23 @@ export function PropertyDetailPage() {
             { label: 'RERA', value: rera },
             { label: 'Address', value: p.addressLine },
             { label: 'Pincode', value: p.pincode },
+            { label: 'Coordinates', value: p.latitude != null && p.longitude != null ? `${p.latitude.toFixed(5)}, ${p.longitude.toFixed(5)}` : '' },
           ],
+        },
+        {
+          title: 'Map',
+          subtitle: [p.locality, p.city].filter(Boolean).join(', '),
+          custom: (
+            <PropertyMap
+              latitude={p.latitude}
+              longitude={p.longitude}
+              query={[p.addressLine, p.locality, p.city, p.state, p.pincode].filter(Boolean).join(', ')}
+              onFound={(latitude, longitude) => {
+                if (p.latitude != null && p.longitude != null) return;
+                void patch({ address: addressOf(p, { latitude, longitude }) }, 'Location pinned on the map');
+              }}
+            />
+          ),
         },
         { title: 'Description', text: p.description || 'No description added' },
         {

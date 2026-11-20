@@ -5,6 +5,8 @@ import { useViewport } from '../../../hooks/useViewport';
 import { formatApiError } from '../../../lib/apiClient';
 import { typeLabel } from '../../../lib/format';
 import { createProperty } from '../../../services/properties';
+import { PropertyMap } from '../../../components/maps/PropertyMap';
+import { forwardGeocode } from '../../../services/geo/geoService';
 import { toast } from '../../../store/uiStore';
 import type { PropertyPayload } from '../../../types/properties';
 import { AMENITIES, FILTER_TYPES, SPECS, specKey, specParts } from '../constants';
@@ -286,6 +288,33 @@ export function AddProperty() {
               {sec.fields.length > 0 && (
                 <div className={styles.fieldGrid} style={{ gridTemplateColumns: vw >= 768 ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)' }}>
                   {sec.fields.map(renderField)}
+                </div>
+              )}
+              {sec.title.startsWith('Section 2') && (
+                <div style={{ marginTop: 12, display: 'grid', gap: 10 }}>
+                  <button
+                    type="button"
+                    className={styles.btnOutline}
+                    onClick={() => {
+                      const q = [v('address'), v('locality'), v('city'), v('state'), v('pincode')].filter(Boolean).join(', ');
+                      if (q.length < 3) {
+                        setFormError('Enter a locality or address before placing the pin.');
+                        return;
+                      }
+                      void forwardGeocode(q).then((place) => {
+                        if (!place) {
+                          setFormError('No map location was found for that address.');
+                          return;
+                        }
+                        set('lat', String(place.latitude));
+                        set('lng', String(place.longitude));
+                        setFormError('');
+                      }).catch((err) => setFormError(formatApiError(err)));
+                    }}
+                  >
+                    Place on map
+                  </button>
+                  <PropertyMap latitude={v('lat') ? Number(v('lat')) : null} longitude={v('lng') ? Number(v('lng')) : null} />
                 </div>
               )}
               {sec.chips && (
